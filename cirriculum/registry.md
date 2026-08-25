@@ -1,366 +1,31 @@
-# Backend Engineering Bootcamp — Registry — Day 7 Update
-
-> Apply the sections below to `cirriculum/registry.md`.
-> Keep the existing Day 5 and Day 6 evidence unchanged.
-> Replace `Current Position`, append the Day 7 evidence/findings, and replace `Exact Next Action` with the Day 8 section below.
-
----
-
 # Current Position
 
 * **Phase:** Phase 1 — Foundations: Data Structures, Complexity & Memory
-* **Latest Curriculum Worked:** Day 7 — Stack, Queue & Sliding-Window Reasoning
-* **Day 7 Date:** 2026-08-24
-* **Status:** Day 7 completed at the learning/evidence level. Stack and Queue behavioral contracts and linked implementations were exercised with tests. Valid Parentheses was derived from unresolved-state/LIFO reasoning. Sliding-window reasoning was reinforced from positivity and total pointer movement. Java runtime trade-offs between array-backed and linked structures were reviewed. HLD exposure continued through a durable Notification Service flow covering persistence-before-acknowledgement, atomic claiming, leases, fencing, downstream idempotency, reconciliation, and queue-backlog diagnosis. A small amount of implementation cleanup remains to be verified, but the concepts do not need to be re-taught.
-* **Next Curriculum:** Day 8
+* **Latest Curriculum Worked:** Day 8 — Deque, LRU Cache LLD & Constraint-Driven Sliding Window
+* **Day 8 Date:** 2026-08-25
+* **Status:** Day 8 completed at the learning/evidence level. Deque behavior was derived from requirements, doubly linked-list mechanics and invariants were implemented and tested, and Longest Substring Without Repeating Characters was derived and implemented using a Set-based sliding window. LRU Cache was derived from independent O(1) lookup and recency-mutation requirements into a `HashMap + Doubly Linked List` composite representation. LRU invariants, helper contracts, `get`/`put` behavior, eviction flow, and a capacity-2 dry run were completed. Production cache reasoning covered hit rate, cold-cache behavior, working-set pressure, cache-key cardinality, capacity decisions, source-of-truth boundaries, LRU policy limitations, and the distinction between eviction and freshness. Full LRU implementation and tests remain intentionally deferred.
+* **Next Curriculum:** Day 9
 * **Primary Language:** Java
 * **Target Level:** Strong Senior / Lead / Staff-level backend engineering capability
 * **Primary Goal:** Production engineering excellence + top-tier interview readiness
 
 ---
 
-# Day 7 — Completed Learning & Evidence
+# Day 8 — Completed Learning & Evidence
 
-## 1. Mixed DSA Pattern Recall
+## 1. Day 7 Closure
 
-Reinforced the abstraction-first protocol through four short drills.
+### Queue Final-Element Transition
 
-### Membership
-
-Problem:
-
-> For every arriving integer, determine whether that value appeared previously.
-
-Derived:
+Reinforced the Queue empty-state invariant:
 
 ```text
-objective
-→ membership in prior observations
-
-brute force
-→ scan all prior values for every new value
-
-repeated work
-→ repeatedly searching the same history
-
-relevant state
-→ distinct values observed so far
-
-discardable information
-→ arrival order
-→ positions
-→ duplicate count
-```
-
-Result:
-
-```text
-membership requirement
-→ HashSet
-```
-
-Complexity:
-
-```text
-brute force total → O(n²)
-HashSet average   → O(n)
-space             → O(n)
-```
-
-Important lesson:
-
-> Choose `Set` because only membership matters, not because the story “looks like a HashSet problem.”
-
-### Sorted Pair Sum
-
-Re-derived safe two-pointer elimination from sorted order.
-
-```text
-sum > target
-→ current largest cannot work with any remaining partner
-→ move right leftward
-
-sum < target
-→ current smallest cannot work with any remaining partner
-→ move left rightward
-```
-
-Enabling property:
-
-> Sorted order gives monotonic boundary behavior, which makes permanent candidate elimination safe.
-
-A boundary-direction slip occurred during explanation and was corrected.
-
-### Middle of Linked List
-
-Re-derived:
-
-```text
-slow moves 1
-fast moves 2
-```
-
-Key abstraction:
-
-> Relative speed encodes positional information without needing the absolute list length.
-
-Important boundary correction reinforced for:
-
-```java
-while (fast != null && fast.next != null)
-```
-
-For an even-length list, the usual implementation returns the second middle.
-
-### Minimum Contiguous Sum
-
-Recalled the minimum-length contiguous subarray with positive numbers.
-
-Derived:
-
-```text
-sum < target
-→ expand right
-
-sum >= target
-→ shrink left while still valid
-```
-
-Enabling property:
-
-```text
-all values > 0
-```
-
-Therefore:
-
-```text
-expand right → sum cannot decrease
-shrink left  → sum cannot increase
-```
-
-Negative values break this monotonic guarantee.
-
----
-
-## 2. `removeNthFromEnd` Closure
-
-The fixed-gap reasoning was closed conceptually.
-
-For deletion:
-
-```text
-slow must end on the predecessor
-of the node being removed
-```
-
-Reason:
-
-> In a singly linked list, deletion is performed by changing the predecessor's `next` reference.
-
-Dummy-node value reinforced:
-
-```text
-dummy → head → ...
-```
-
-The dummy gives the real head an artificial predecessor, so removing the head uses the same predecessor-based operation as removing any other node.
-
-Core invariant:
-
-> Establish the fast/slow gap once, then move both pointers together so that when `fast` reaches the boundary, `slow` is the predecessor of the deletion target.
-
----
-
-## 3. Stack Behavioral Contract
-
-Derived Stack from access behavior before naming the structure.
-
-```text
-push A
-push B
-push C
-
-pop → C
-pop → B
-pop → A
-```
-
-Core contract:
-
-```text
-LIFO
-Last In, First Out
-```
-
-Important abstraction:
-
-> Stack is a behavioral contract, not a physical representation.
-
-Possible representations include:
-
-* linked nodes
-* dynamic array
-* array/deque-style storage
-
----
-
-## 4. `IntStack` Implementation
-
-Implemented a linked-node Stack maintaining:
-
-```text
-top
-size
-```
-
-Core invariant:
-
-```text
-size == 0 ⇔ top == null
-```
-
-and:
-
-> `top` always represents the next value that `pop()` must return.
-
-Operations demonstrated:
-
-```text
-push  O(1)
-pop   O(1)
-peek  O(1)
-```
-
-Empty `pop()` / `peek()` contract was standardized to:
-
-```text
-throw NoSuchElementException
-```
-
-Important API/encapsulation feedback:
-
-* do not expose `Node` through the Stack API
-* `top` and `size` should be private
-* nested `Node` can be `private static`
-* internal Node getters/setters are unnecessary
-* `peek()` should return primitive `int` when empty state is represented by exception
-* `push()` can be reduced to `top = new Node(value, top)`
-
-These are code-hygiene improvements, not conceptual Stack gaps.
-
----
-
-## 5. `IntStack` Testing Evidence
-
-JUnit tests covered:
-
-* push one integer
-* negative integer
-* multiple pushes
-* empty `pop()`
-* one-element `pop()`
-* multi-element `pop()`
-* push/pop transitions
-* `peek()` without removal
-* empty `peek()`
-* size on empty/non-empty stack
-* `isEmpty()`
-* explicit LIFO ordering
-* final-element removal
-
-LIFO evidence included:
-
-```text
-push 2
-push 0
-push 3
-
-pop → 3
-pop → 0
-pop → 2
-```
-
-Stack implementation is complete at the learning/evidence level.
-
----
-
-## 6. Queue Behavioral Contract
-
-Derived Queue from access behavior.
-
-```text
-enqueue A
-enqueue B
-enqueue C
-
-dequeue → A
-dequeue → B
-dequeue → C
-```
-
-Core contract:
-
-```text
-FIFO
-First In, First Out
-```
-
-Linked representation chosen with:
-
-```text
-head
-tail
-size
-```
-
-Meaning:
-
-```text
-head
-→ next value to dequeue
-
-tail
-→ most recently enqueued value
-```
-
-Why `tail` exists:
-
-> Without a stored `tail`, linked-list enqueue requires traversal to the end and becomes `O(n)`. Maintaining `tail` makes enqueue `O(1)`.
-
----
-
-## 7. `IntQueue` Implementation and Critical Invariant
-
-Implemented linked-node Queue operations:
-
-```text
-enqueue
-dequeue
-peek
-getSize
-isEmpty
-```
-
-Critical empty invariant:
-
-```text
+size == 0
 head == null
 tail == null
-size == 0
 ```
 
-Non-empty invariant:
-
-```text
-head != null
-tail != null
-tail.next == null
-```
-
-A real bug was identified in the first implementation.
-
-For:
+For the final element:
 
 ```text
 head
@@ -370,863 +35,1084 @@ head
 tail
 ```
 
-after removing `A`, the initial code produced:
+`dequeue()` must leave:
 
 ```text
 head = null
-tail = old A
+tail = null
 size = 0
 ```
 
-This violates the empty invariant.
+Important correction:
 
-Required correction:
+> Normal dequeue moves `head`; `tail` is explicitly cleared only when removing the final node.
 
-```java
-head = head.next;
-size--;
+Existing Queue tests cover FIFO behavior, empty exceptions, size transitions, full drain, and enqueue-after-drain behavior.
 
-if (head == null) {
-    tail = null;
-}
-```
+### Valid Parentheses
 
-Key engineering lesson:
+Reinforced the smallest sufficient representation:
 
-> `tail` is redundant/convenience state introduced for performance. Extra state buys faster operations but creates an additional consistency burden.
+> The stack contains exactly the unmatched opening brackets, with the most recent unmatched opener on top.
 
-Final corrected Queue code should be verified once before considering the implementation fully closed; the invariant itself is understood.
-
----
-
-## 8. `IntQueue` Testing Evidence
-
-JUnit tests covered:
-
-* enqueue one
-* enqueue several
-* FIFO dequeue order
-* `peek()` without removal
-* size transitions
-* empty `dequeue()`
-* empty `peek()`
-* drain entire queue
-* enqueue again after becoming empty
-
-Important testing improvement:
-
-> Re-enqueue-after-empty should verify actual behavior (`peek`, `dequeue`, `isEmpty`) rather than only verifying `size`.
-
-Queue reasoning is strong; final code should retain the explicit `tail = null` transition when the final node is removed.
-
----
-
-## 9. Valid Parentheses — Abstraction & Stack Derivation
-
-Problem objective:
-
-> Validate correct bracket nesting.
-
-Relevant symbols for the standard problem:
+Only the standard bracket symbols affect the problem:
 
 ```text
-( )
-[ ]
-{ }
+()
+[]
+{}
 ```
 
-Historical information required:
+Important abstraction lesson:
 
-> Only unmatched opening brackets, in the order they must be closed.
+> Do not model extra parsing concepts or retain input history that does not affect the answer.
 
-Key insight:
+---
 
-> A closing bracket must match the **most recent unmatched opening bracket**, not merely any matching opener that appeared previously.
+## 2. Deque — Behavioral Contract
+
+Derived Deque from required operations:
+
+```text
+addFirst
+addLast
+removeFirst
+removeLast
+peekFirst
+peekLast
+```
+
+Target:
+
+```text
+all end operations → O(1)
+```
+
+Important distinction:
+
+```text
+Deque
+→ behavioral contract / ADT
+
+Doubly Linked List
+→ one possible implementation
+```
+
+Deque and Doubly Linked List are not synonyms.
+
+---
+
+## 3. Why Singly Linked List Is Insufficient
+
+With both:
+
+```text
+head
+tail
+```
+
+a singly linked list supports:
+
+```text
+addFirst    → O(1)
+addLast     → O(1)
+removeFirst → O(1)
+removeLast  → O(n)
+```
+
+`removeLast()` remains `O(n)` because `tail` identifies the final node but does not identify its predecessor.
 
 Example:
 
 ```text
-([)]
+A → B → C → D
+            ↑
+           tail
 ```
 
-Processing:
+Removing `D` requires reaching `C`.
+
+This requirement motivated adding:
 
 ```text
-'(' → push
-'[' → push
-')' → top is '['
+prev
 ```
 
-Mismatch is sufficient to return `false` immediately. The remaining `]` cannot repair an already-invalid prefix.
+to each node.
+
+---
+
+## 4. Doubly Linked List Invariants
+
+Node representation:
+
+```text
+value
+prev
+next
+```
+
+Core invariants:
+
+```text
+size == 0
+→ head == null
+→ tail == null
+```
+
+```text
+size == 1
+→ head == tail
+```
+
+For non-empty structures:
+
+```text
+head.prev == null
+tail.next == null
+```
+
+For adjacent nodes:
+
+```text
+A.next == B
+B.prev == A
+```
+
+Key engineering lesson:
+
+> Additional state provides faster operations but introduces additional consistency obligations.
+
+---
+
+## 5. `IntDeque` Implementation
+
+Implemented:
+
+```java
+addFirst(int value)
+addLast(int value)
+removeFirst()
+removeLast()
+peekFirst()
+peekLast()
+getSize()
+isEmpty()
+```
+
+Correctly handled:
+
+```text
+empty → single
+single → multiple
+multiple → single
+single → empty
+empty → reusable again
+```
+
+Important singleton-removal behavior:
+
+```text
+head = null
+tail = null
+size = 0
+```
+
+---
+
+## 6. `IntDeque` Testing Evidence
+
+JUnit tests cover:
+
+* `addFirst` on empty, single, and multiple elements
+* `addLast` on empty, single, and multiple elements
+* `removeFirst` on empty, single, and multiple elements
+* `removeLast` on empty, single, and multiple elements
+* empty and non-empty `peekFirst`
+* empty and non-empty `peekLast`
+* size transitions
+* `isEmpty`
+* full drain
+* reuse after drain
+
+A test-modeling mistake was discovered and corrected.
+
+Example:
+
+```text
+addFirst(5)
+addFirst(6)
+addFirst(7)
+```
+
+produces:
+
+```text
+7 <-> 6 <-> 5
+```
+
+Important testing lesson:
+
+> Derive or draw pointer state before asserting expected linked-list order.
+
+Deque is complete at the Day 8 learning/evidence level.
+
+---
+
+## 7. Longest Substring Without Repeating Characters
+
+Objective:
+
+> Find the maximum length contiguous substring containing no duplicate characters.
+
+Brute force was derived before optimization.
+
+Repeated work identified:
+
+> Neighboring start positions repeatedly rebuild membership information for heavily overlapping substrings.
+
+Smallest sufficient state for the first optimized solution:
+
+```text
+left
+right
+HashSet<Character>
+bestLength
+```
+
+Global character frequencies are unnecessary.
+
+---
+
+## 8. Sliding-Window Invariant
 
 Core invariant:
 
-> After processing each prefix, the stack contains exactly the unmatched opening brackets, with the most recent unmatched opener at the top.
+> The current window contains no duplicate characters and the Set contains exactly the characters in that window.
 
-End condition:
-
-```text
-stack must be empty
-```
-
-so:
+When the incoming character already exists:
 
 ```text
-(((
+while incoming character is in Set
+    remove s[left]
+    left++
 ```
 
-is invalid even though no closing mismatch occurred.
+Then add the incoming character.
+
+Important transfer insight:
+
+> The optimization works because an invalid window can be restored by monotonically moving `left` forward. Neither boundary needs to move backward.
+
+This differs from Minimum Size Subarray Sum:
+
+```text
+Minimum Size Subarray Sum
+→ relies on positivity and numeric monotonicity
+
+Longest Substring
+→ relies on monotonic restoration of a validity constraint
+```
 
 ---
 
-## 10. Valid Parentheses — Important Modeling Finding
+## 9. Longest Substring Complexity
 
-The first implementation expanded the problem to include:
-
-* quotes
-* angle brackets
-* arbitrary characters
-* additional parsing semantics
-
-This was unnecessary for the stated problem and reproduced an existing DSA weakness:
-
-> Modeling the story/language too literally and introducing extra state before proving that it affects the answer.
-
-The correction was to return to the smallest sufficient representation:
+Even with:
 
 ```text
-objective
-→ bracket nesting validity
-
-relevant information
-→ only unresolved opening brackets
-
-discard
-→ everything that does not affect bracket matching
+for right
+    while duplicate
+        left++
 ```
 
-A later implementation correctly added an empty-stack guard before `peek()`:
-
-```java
-if (!charStack.isEmpty() && charStack.peek() == expected) {
-    charStack.pop();
-} else {
-    return false;
-}
-```
-
-Remaining cleanup for the standard interview problem:
-
-* remove `<` / `>`
-* ensure the opener set contains exactly `(`, `[`, `{`
-* remove unnecessary parsing/generalization
-
-Reasoning is complete; final implementation cleanup should be brief.
-
----
-
-## 11. Sliding-Window Complexity Closure
-
-The minimum-size-subarray problem was not re-solved from scratch because it was already covered previously.
-
-The critical complexity proof was reinforced.
-
-Even if code has:
+the total complexity is:
 
 ```text
-for right ...
-    while ...
+O(n)
 ```
 
-it is still `O(n)` because:
+because:
 
 ```text
 right moves forward at most n times
 left moves forward at most n times
 ```
 
-Total boundary movement:
-
-```text
-≤ 2n
-```
+Each character enters the window at most once and leaves it at most once.
 
 Therefore:
 
 ```text
-Time  → O(n)
-Space → O(1)
+Time  → O(n) average
+Space → O(k)
 ```
 
-Preferred interview explanation:
-
-> Each element enters the window at most once and leaves the window at most once.
-
-Avoid reasoning such as:
-
-> “The inner loop usually scans only a few elements.”
-
-That is not a worst-case proof.
-
-Sliding-window reasoning is materially stronger than on Day 6, though future transfer problems should still test whether the pattern is recognized from monotonicity rather than memorization.
+where `k` is the maximum number of distinct characters in the active window.
 
 ---
 
-## 12. Java/JVM — `ArrayDeque` vs Linked Representation
+## 10. Longest Substring Implementation & Tests
 
-Reinforced that identical Big-O does not imply identical runtime performance.
+Implemented the Set-based sliding-window solution.
 
-Linked Stack using the head can still provide:
-
-```text
-push → O(1)
-pop  → O(1)
-```
-
-Linked Queue with `head` + `tail` can provide:
+Tested cases include:
 
 ```text
-enqueue → O(1)
-dequeue → O(1)
+"abcabcbb" → 3
+"bbbbb"    → 1
+"pwwkew"   → 3
+""         → 0
+"a"        → 1
+"abba"     → 2
+"dvdf"     → 3
 ```
 
-So `ArrayDeque` performance advantages are not because the linked representation necessarily traverses.
+Implementation feedback:
 
-Array-backed advantages discussed:
+> Restore the validity invariant first, add the current character, then compute and update the current maximum. This keeps the code aligned directly with the reasoning.
 
-* stronger cache locality
-* fewer per-element node allocations
-* less pointer chasing
-* lower object/header/reference overhead
-* lower GC pressure
-* better use of CPU cache lines
-
-Important distinction:
-
-```text
-algorithmic complexity
-!=
-allocation cost
-!=
-memory layout
-!=
-cache behavior
-!=
-GC overhead
-```
-
-A mistaken claim that linked-list `pop()` necessarily traverses to the end was corrected.
+DSA portion is complete at the Day 8 learning/evidence level.
 
 ---
 
-## 13. HLD — Notification Service: Durable Acceptance
+# LRU Cache LLD
 
-Scenario:
+## 11. Requirements Derived Before Data Structures
 
-```text
-POST /notifications
-↓
-asynchronous processing
-↓
-email/SMS provider
-```
-
-Naive design:
+Required API:
 
 ```text
-API
-↓
-in-memory queue
-↓
-worker
-↓
-provider
+get(key)
+put(key, value)
 ```
 
-Failure:
+Target:
 
 ```text
-request accepted
-→ 202 returned
-→ JVM/process crashes
-→ in-memory queue disappears
-→ acknowledged notification is lost
+get → O(1) expected
+put → O(1) expected
 ```
 
-Derived invariant:
-
-> Once the service acknowledges durable acceptance, enough state must survive process failure to continue processing later.
-
-V1 durable flow:
+Two independent requirements were identified:
 
 ```text
-POST /notifications
-↓
-INSERT notification(status = PENDING)
-↓
-DB commit
-↓
-202 Accepted
-```
-
-Important semantic distinction:
-
-```text
-202 Accepted
-```
-
-means:
-
-> The system durably accepted responsibility for processing.
-
-It does **not** mean:
-
-> The external email/SMS was already sent.
-
----
-
-## 14. HLD — Atomic Claiming With Multiple Workers
-
-With multiple workers polling `PENDING` notifications, a plain:
-
-```text
-SELECT PENDING
-→ later UPDATE
-```
-
-creates a race because several workers can observe the same pending row.
-
-Derived atomic claim:
-
-```sql
-UPDATE notifications
-SET status = 'IN_PROGRESS',
-    worker_id = ?,
-    updated_at = NOW()
-WHERE id = ?
-  AND status = 'PENDING';
-```
-
-Interpret affected-row count:
-
-```text
-1 row
-→ claim won
-→ worker owns processing
-
-0 rows
-→ another worker already changed the state
-→ skip
-```
-
-Important operational rule:
-
-> Do not hold a database transaction/row lock while calling the external provider.
-
-Correct shape:
-
-```text
-claim atomically
-↓
-commit
-↓
-release DB resources
-↓
-perform network I/O
-```
-
----
-
-## 15. HLD — Lease Recovery & Fencing
-
-Failure:
-
-```text
-PENDING → IN_PROGRESS
-↓
-worker crashes
-↓
-job remains stuck forever
-```
-
-Recovered using time-bounded ownership:
-
-```text
-status
-owner
-leaseUntil
-fencingToken
-```
-
-Example:
-
-```text
-Worker A claims token 10
-↓
-lease expires
-↓
-Worker B claims token 11
-```
-
-Lease:
-
-> Determines when another worker may reclaim ownership.
-
-Fencing token:
-
-> Determines whether a particular execution attempt is still authorized to mutate authoritative state.
-
-A stale Worker A carrying token 10 must not overwrite state after token 11 becomes authoritative.
-
----
-
-## 16. HLD — External Side Effects & Idempotency
-
-Hard failure window:
-
-```text
-worker calls provider
-↓
-provider successfully sends email
-↓
-worker crashes
-↓
-before local DB is updated to COMPLETED
-```
-
-After lease expiry, another worker may retry.
-
-Fencing alone cannot undo or deduplicate an external side effect that already happened.
-
-Derived requirement:
-
-> The external operation should be identifiable/idempotent when the downstream system supports it.
-
-Example:
-
-```text
-notificationId = N123
-idempotencyKey = N123
-```
-
-Retry:
-
-```text
-Worker A → provider(N123) → send succeeds → crash
-Worker B → provider(N123)
-```
-
-If provider honors idempotency:
-
-```text
-same logical request
-→ no duplicate external effect
-→ return prior result
-→ local state converges to COMPLETED
-```
-
-Important distinction:
-
-```text
-fencing
-→ protects authorization to mutate local authoritative state
-
-idempotency
-→ protects repeated external business effects
-```
-
-If the provider does not support idempotency, the system cannot magically guarantee true exactly-once execution across the external boundary.
-
-Practical guarantee may be:
-
-```text
-at-least-once processing
+fast key lookup
 +
-best-effort duplicate suppression
+fast recency mutation
+```
+
+---
+
+## 12. Why One Structure Is Insufficient
+
+### HashMap Alone
+
+Provides:
+
+```text
+key lookup → O(1) expected
+```
+
+but cannot directly maintain:
+
+```text
+MRU ... LRU
+```
+
+or identify/update recency in `O(1)`.
+
+### Doubly Linked List Alone
+
+Provides:
+
+```text
+insert MRU      → O(1)
+remove LRU      → O(1)
+move known node → O(1)
+```
+
+but:
+
+```text
+get(key)
+```
+
+requires scanning:
+
+```text
+O(n)
+```
+
+---
+
+## 13. Composite LRU Representation
+
+Derived:
+
+```text
+HashMap
 +
-reconciliation
+Doubly Linked List
+```
+
+Representation:
+
+```text
+Map:
+key → Node
+
+DLL:
+MRU <-> ... <-> LRU
+```
+
+Chosen convention:
+
+```text
+head → MRU
+tail → LRU
+```
+
+Important milestone:
+
+> `HashMap + DLL` was derived from operation requirements rather than memorized as the standard LRU answer.
+
+---
+
+## 14. LRU Node Representation
+
+Node requires:
+
+```text
+key
+value
+prev
+next
+```
+
+Why the map stores:
+
+```text
+key → Node
+```
+
+instead of:
+
+```text
+key → value
+```
+
+Because a successful access must locate the exact list node and move it to MRU in `O(1)`.
+
+Why Node stores `key`:
+
+```text
+tail
+→ LRU Node
+→ node.key
+→ map.remove(node.key)
+```
+
+This allows eviction to update both representations in `O(1)`.
+
+---
+
+## 15. LRU Helper Contracts
+
+Derived helper operations:
+
+```text
+removeNode(node)
+addFirst(node)
+moveToFront(node)
+removeLast()
+```
+
+Conceptually:
+
+```text
+moveToFront(node)
+→ removeNode(node)
+→ addFirst(node)
+```
+
+Important LLD principle:
+
+> Public methods express cache behavior; helper methods encapsulate pointer mutation.
+
+---
+
+## 16. LRU `get` / `put` Behavior
+
+### `get(key)`
+
+```text
+find node in map
+↓
+missing → cache miss
+↓
+move node to MRU
+↓
+return node.value
+```
+
+Important insight:
+
+> A successful LRU `get()` is not structurally read-only because it changes recency.
+
+### `put(existingKey, value)`
+
+```text
+find existing node
+↓
+update value
+↓
+move to MRU
+```
+
+Size remains unchanged.
+
+### `put(newKey, value)` With Space
+
+```text
+create node
+↓
+add to map
+↓
+add as MRU
+```
+
+### `put(newKey, value)` When Full
+
+```text
+identify LRU from tail
+↓
+remove LRU from DLL
+↓
+remove lru.key from map
+↓
+create new node
+↓
+add to map
+↓
+add as MRU
 ```
 
 ---
 
-## 17. HLD — Reconciliation
+## 17. LRU Core Invariants
 
-Useful durable fields discussed:
-
-```text
-notification_id
-status
-provider_request_id
-idempotency_key
-owner
-lease_until
-fencing_token
-```
-
-For an ambiguous `IN_PROGRESS` notification:
+Capacity:
 
 ```text
-query provider using stable identity
-↓
-provider reports SENT
-↓
-mark local notification COMPLETED
+0 <= size <= capacity
 ```
 
-This extends the earlier payment-system learning:
+Map/list agreement:
 
-> Local database state and external side effects may temporarily disagree; reconciliation is required to converge.
-
----
-
-## 18. Production Queue Backlog Diagnosis
-
-Observed metrics:
-
-```text
-producer rate:      8,500/sec
-consumer rate:      6,000/sec
-queue depth:        increasing
-CPU:                45%
-DB latency:         normal
-provider latency:   elevated
-error rate:         low
-```
-
-Immediate throughput equation:
-
-```text
-8,500 - 6,000
-= 2,500 messages/sec backlog growth
-```
-
-Per minute:
-
-```text
-2,500 × 60
-= 150,000 additional messages
-```
-
-Fundamental condition:
-
-```text
-arrival rate > service rate
-```
-
-Therefore backlog must grow while that condition remains true.
-
----
-
-## 19. CPU Saturation vs System Saturation
-
-A critical production distinction was reinforced.
-
-Moderate CPU does not imply healthy throughput.
-
-Consumers may be:
-
-```text
-call provider
-↓
-wait on network/downstream
-↓
-receive response
-↓
-process next item
-```
-
-During I/O wait, worker threads may be occupied while CPU remains moderate.
-
-Given:
-
-```text
-CPU normal
-DB normal
-provider latency elevated
-```
-
-the strongest first hypothesis is:
-
-> Elevated downstream latency is reducing effective consumer throughput.
-
-Validate with:
-
-* provider-call latency
-* in-flight request count
-* worker active/waiting state
-* timeout rate
-* consumer throughput
-* queue age
-* queue depth
-
-Do not jump directly to GC/thread-count explanations when existing evidence points more strongly to downstream I/O.
-
----
-
-## 20. Queue Age, End-to-End Latency & Capacity
-
-If oldest-message age grows:
-
-```text
-2 sec
-→ 30 sec
-→ 3 min
-```
-
-then customer-visible end-to-end latency grows even if the provider eventually succeeds.
-
-```text
-end-to-end latency
-=
-queue wait
-+
-actual processing time
-```
+> Every logical cache entry exists exactly once in the HashMap and exactly once in the linked list.
 
 Therefore:
 
-> Low error rate does not prove that the system is healthy.
-
-Important operational signal:
-
 ```text
-oldest message age / queueing delay
+map.size() == number of DLL nodes
 ```
 
-Increasing queue capacity from:
+Identity invariant:
 
 ```text
-1 million
-→ 10 million
+map.get(k)
 ```
 
-does not fix:
+must point to the exact list node representing `k`.
+
+Recency:
 
 ```text
-arrival rate > service rate
+head = MRU
+tail = LRU
 ```
 
-It only delays the point at which capacity/resources are exhausted.
+Boundary:
 
-Core mental model:
+```text
+head.prev == null
+tail.next == null
+```
 
-> Queues absorb temporary bursts. They cannot indefinitely compensate for a sustained throughput deficit.
+Important LLD lesson:
+
+> Two individually valid data structures can still form an invalid composite structure if they disagree about their logical contents.
 
 ---
 
-# Day 7 — Improvement Findings / Remaining Gaps
+## 18. LRU Capacity-2 Dry Run
 
-## 1. DSA Abstraction Is Improving, but Over-Modeling Still Appears During Coding
+For:
 
-During verbal reasoning, objective/relevant-state identification improved significantly.
+```text
+capacity = 2
+```
 
-However, Valid Parentheses initially expanded into:
+operations:
 
-* quotes
-* angle brackets
-* arbitrary parsing behavior
+```text
+put(1,10)
+put(2,20)
+get(1)
+put(3,30)
+```
 
-This is the same DSA tendency previously identified:
+state evolves to:
 
-> Story/system modeling begins before proving what information actually affects the answer.
+```text
+after put(1):
+1
+
+after put(2):
+2 <-> 1
+
+after get(1):
+1 <-> 2
+
+put(3):
+evict 2
+
+final:
+3 <-> 1
+```
+
+Then:
+
+```text
+get(2) → miss
+get(3) → 30
+```
+
+Required Day 8 LRU dry run completed.
+
+Full LRU implementation and tests remain intentionally deferred.
+
+Do not mark LRU as mastered yet.
+
+---
+
+# Java / JVM Connection
+
+## 19. Linked Node Trade-Off
+
+LRU requires:
+
+```text
+access arbitrary key
+↓
+obtain exact node
+↓
+move arbitrary node to MRU
+```
+
+A DLL allows a known node to be detached in `O(1)` using:
+
+```text
+prev
+next
+```
+
+This does not imply linked structures are universally faster than array-backed structures.
+
+Composite LRU adds:
+
+```text
+HashMap state
++
+Node allocations
++
+key/value
++
+prev/next references
+```
+
+Potential costs:
+
+* extra memory
+* more allocations
+* pointer chasing
+* weaker locality
+* additional GC pressure
+
+Key principle:
+
+> Improved operation complexity often costs additional state and stronger invariants.
+
+---
+
+# HLD / Production Cache Reasoning
+
+## 20. Local Cache as Optimization
+
+Typical flow:
+
+```text
+request
+↓
+local cache
+├── hit  → return cached value
+└── miss → authoritative store
+           ↓
+           populate cache
+           ↓
+           return
+```
+
+A local in-memory cache should normally be reconstructible.
+
+If the JVM disappears:
+
+```text
+cache disappears
+```
+
+but durable business data should remain available from the authoritative database/service.
+
+Therefore:
+
+```text
+cache = optimization
+```
+
+not:
+
+```text
+system of record
+```
+
+---
+
+## 21. Working Set, Capacity & LRU Limitations
+
+LRU assumes:
+
+> Recently accessed data is more likely to be accessed again.
+
+This is a workload assumption, not a universal truth.
+
+If:
+
+```text
+working set >> capacity
+```
+
+the cache can thrash:
+
+```text
+insert
+evict
+insert
+evict
+```
+
+with little useful reuse.
+
+LRU tracks:
+
+```text
+recency
+```
+
+not:
+
+```text
+historical frequency
+```
+
+Therefore a historically very hot item can still eventually be evicted if it has not been accessed recently.
+
+---
+
+## 22. Cache Capacity Reasoning
+
+Increasing capacity is not automatically a fix.
+
+Example:
+
+```text
+capacity = 10,000
+hit rate ≈ 90–94%
+```
+
+Increasing capacity dramatically may provide little incremental value while increasing:
+
+* memory usage
+* per-instance duplication
+* warm-up cost
+* GC pressure
+
+Low hit rate also does not automatically imply insufficient capacity.
+
+Investigate:
+
+* working-set size
+* cache-key cardinality
+* TTL
+* invalidation
+* cache bypass
+* changed access locality
+* failed cache population
+
+---
+
+## 23. Cache Hit-Rate Collapse
+
+After deployment, first determine whether the cache is temporarily cold.
+
+Typical local-cache lifecycle:
+
+```text
+deployment
+↓
+JVM restart
+↓
+empty cache
+↓
+misses
+↓
+cache warms
+↓
+hit rate recovers
+```
+
+A persistent low hit rate after the expected warm-up period requires investigation.
+
+Potential causes:
+
+* reduced capacity
+* changed TTL
+* aggressive invalidation
+* cache bypass
+* cache population failure
+* changed access pattern
+* increased service-instance count
+* metric/instrumentation changes
+* bad cache-key construction
+
+Important example:
+
+```text
+before:
+customer:123
+
+after:
+customer:123:requestId:<unique>
+```
+
+A unique request ID creates extremely high cache-key cardinality and can collapse hit rate even when the LRU implementation itself is correct.
+
+---
+
+## 24. Hit Rate & Dependency Load
+
+When:
+
+```text
+cache hit rate ↓
+```
+
+then:
+
+```text
+cache misses ↑
+↓
+database/downstream requests ↑
+↓
+dependency load ↑
+↓
+latency may ↑
+```
+
+Application CPU may remain moderate while the dependency experiences significant pressure.
+
+---
+
+## 25. Eviction vs Freshness
+
+Important distinction:
+
+```text
+LRU
+→ eviction policy
+
+TTL / invalidation / refresh
+→ freshness policy
+```
+
+Stale data is not inherently an LRU implementation problem.
+
+Staleness occurs when:
+
+```text
+source of truth changes
+↓
+cached copy remains old
+↓
+application continues reading cached value
+```
+
+LRU answers:
+
+> Which entry should be removed because capacity is needed?
+
+Freshness logic answers:
+
+> When should an existing cached entry no longer be trusted?
+
+These concerns must not be conflated.
+
+---
+
+# Day 8 — Gaps / Corrections to Continue Reinforcing
+
+## DSA Abstraction
 
 Continue enforcing:
 
 ```text
 objective
-→ relevant information
-→ discardable information
-→ smallest sufficient state
-→ only then implementation
+↓
+information that affects answer
+↓
+discardable details
+↓
+smallest sufficient representation
+↓
+brute force
+↓
+repeated work
+↓
+optimization
 ```
 
-The next DSA transfer problem should be unfamiliar enough that superficial pattern recall is insufficient.
+There is still a tendency to initially retain more state than required, such as global character frequencies for a problem that only requires current-window membership.
 
-## 2. Boundary Precision
+## Precision
 
-Two small reasoning slips appeared and were corrected:
+Continue correcting:
 
-* sorted-pair pointer direction
-* even-length fast/slow linked-list termination
+* Deque behavior vs DLL representation
+* `tail` existence vs predecessor availability
+* active-list invariant vs detached-node cleanup
+* exact sliding-window enabling property
+* `Map<K, Node>` vs `Map<K, V>`
+* worst-case complexity proof vs approximate runtime intuition
 
-Continue forcing explicit boundary walkthroughs for pointer problems.
+These are refinement gaps, not foundational blockers.
 
-## 3. Queue Invariant Verification
+---
 
-The single-element Queue transition exposed the exact expected invariant burden:
-
-```text
-dequeue final node
-→ head = null
-→ tail = null
-→ size = 0
-```
-
-The concept is understood.
-
-Before Day 8 implementation work begins, verify that the committed `IntQueue` code contains the `tail = null` correction.
-
-## 4. Valid Parentheses Final Code Cleanup
-
-Reasoning is complete.
-
-Before using the implementation as evidence, verify:
+# Day 8 Completion Status
 
 ```text
-supported openers = (, [, {
-supported closers = ), ], }
-```
+Day 7 Queue closure                  ✅
+Valid Parentheses closure            ✅
 
-and remove unnecessary `< >` / parsing generalization.
+Deque contract                       ✅
+DLL derivation                       ✅
+DLL invariants                       ✅
+IntDeque implementation              ✅
+IntDeque tests                       ✅
 
-Do not spend another teaching session on this problem.
+Longest Substring derivation         ✅
+Set-based implementation             ✅
+required edge cases                  ✅
+O(n) proof                           ✅
+pattern-transfer explanation         ✅
 
-## 5. Sliding Window
+LRU requirements                     ✅
+HashMap limitation                   ✅
+DLL limitation                       ✅
+composite representation             ✅
+Node fields                          ✅
+helper contracts                     ✅
+get/put flows                        ✅
+LRU invariants                       ✅
+capacity-2 dry run                   ✅
 
-Reasoning improved materially.
+LRU full implementation              ⏳ Day 9
+LRU implementation tests             ⏳ Day 9
 
-The next exposure should be a transfer problem rather than repeating Minimum Size Subarray Sum.
-
-The expected explanation remains:
-
-> Positivity/monotonicity makes one-way boundary movement safe.
-
-## 6. Production Diagnosis
-
-Initial diagnosis sometimes mixed:
-
-```text
-symptom
-cause
-mechanism
-```
-
-Continue separating:
-
-```text
-Observation
-→ mathematical/behavioral condition
-→ likely causes
-→ evidence that discriminates causes
-→ mitigation
-```
-
-Example:
-
-```text
-queue age grows
-→ service rate < arrival rate
-→ investigate why service rate fell
+Local cache production reasoning     ✅
+hit-rate diagnosis                   ✅
+capacity/working-set reasoning       ✅
+eviction vs freshness distinction    ✅
 ```
 
 ---
 
-# Ongoing HLD Practice Protocol
+# Exact Next Action — Day 9
 
-Before architecture:
+Begin with a short retrieval drill only.
 
-1. Entities
-2. Bad outcomes
-3. Invariants
-4. Failure scenarios
-5. Minimum durable state
-6. Mechanisms
+Do not re-teach the LRU architecture.
 
-If an answer starts with a mechanism such as lock, queue, retry, cache, or poll, ask:
-
-> What truth/invariant is this mechanism protecting?
-
-Additional Day 7 refinement:
+Retrieve:
 
 ```text
-Durable acceptance
-!=
-business completion
-
-Lease
-!=
-fencing
-
-Fencing
-!=
-idempotency
-
-Queue semantics
-!=
-durable messaging guarantees
+Why Map<K, Node>?
+Why does Node contain key?
+What does head represent?
+What does tail represent?
+What invariant must hold between the map and DLL?
 ```
 
----
+Then implement the LRU structural helpers:
 
-# Ongoing DSA Practice Protocol
+```text
+removeNode(node)
+addFirst(node)
+moveToFront(node)
+removeLast()
+```
 
-Before coding:
+Verify them across:
 
-1. What is the objective?
-2. What is the brute-force search space?
-3. What information actually affects the answer?
-4. What details can be discarded?
-5. What work is repeated?
-6. What can be safely eliminated?
-7. What property/invariant makes that elimination safe?
-8. What is the smallest sufficient representation/state?
-9. Only then choose the pattern/data structure.
-10. Code after the reasoning is stable.
+```text
+single node
+head
+tail
+middle node
+```
 
-Additional Day 7 enforcement:
+Then implement:
 
-> Do not expand the input model or introduce extra syntax/state unless the problem statement requires it.
+```text
+get(key)
+put(key, value)
+```
 
----
+and add tests for:
 
-# Exact Next Action — Day 8
+```text
+existing-key update
+access changes recency
+capacity-1 behavior
+eviction
+evicted-key miss
+repeated get
+repeated put
+map/list agreement
+```
 
-Generate Day 8 from:
+Primary Day 9 engineering invariant:
+
+> The HashMap and Doubly Linked List must remain two synchronized representations of exactly the same logical cache contents after every operation.
+
+After the LRU implementation quality gate, continue Day 9 using:
 
 ```text
 MASTER_CURRICULUM.md
 +
-this registry
+registry.md
 +
-Day 7 evidence
+Day 8 evidence
 ```
 
-Day 8 should:
-
-1. Begin with a very short Day 7 closure:
-   * verify `IntQueue` clears `tail` when the final element is dequeued
-   * verify standard Valid Parentheses implementation uses only `()[]{}`
-
-2. Continue the Phase-1 linked-structure progression toward:
-   ```text
-   Deque
-   ↓
-   LRU Cache
-   ```
-
-3. Derive Deque as an access contract before choosing representation.
-
-4. Introduce doubly linked-list invariants only to the depth needed for efficient operations at both ends and for LRU Cache.
-
-5. Begin LRU Cache as an early LLD exercise:
-   * requirements
-   * API contract
-   * required complexities
-   * invariants
-   * why one structure alone is insufficient
-   * derive the minimum composite representation before coding
-
-6. Preserve abstraction-first DSA coaching with a fresh transfer problem rather than repeating Minimum Size Subarray Sum.
-
-7. Continue a narrow production/HLD connection without expanding into full messaging internals or Phase-3 concurrency.
-
-8. Add automated tests for every new mutable structure before marking the day complete.
-
-9. Keep implementation deliberately small. Do not add:
-   * heap / priority queue
-   * full Kafka/SQS internals
-   * Java Memory Model
-   * advanced concurrency
-   * full Notification Service redesign
-
-10. At the end of Day 8, update this registry using demonstrated evidence only.
+without re-teaching completed Day 8 material.
