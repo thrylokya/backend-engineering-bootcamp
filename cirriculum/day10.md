@@ -1,234 +1,224 @@
-# Day 10 — Binary-Search Boundary Transfer, Rate Limiter V1 & Java Memory Foundations
+# Day 10 — Intensive: Binary-Search Transfer, Rate Limiter V1, Java Memory & Engineering Closure
 
-> **Duration:** ~2 hr 50 min  
+> **Duration:** ~4 hr 30 min to 5 hr  
 > **Phase:** Phase 1 — Foundations: Data Structures, Complexity & Memory  
-> **Primary DSA Theme:** Consolidate exact-search vs boundary-search reasoning through a fresh duplicate-heavy transfer problem.  
-> **Primary LLD Theme:** Convert the Rate Limiter requirements from Day 9 into a small, correct single-node implementation.  
-> **Primary Java Theme:** Build a precise heap/stack/reference/object-layout mental model without jumping ahead into GC internals.  
-> **HLD Scope:** Narrow multi-node Rate Limiter limitation only. Do not implement a distributed Rate Limiter yet.
+> **Session Type:** Intensive Block 1 of 3  
+> **Primary DSA Theme:** Binary-search boundaries and transfer under unfamiliar framing  
+> **Primary LLD Theme:** Implement and test a fixed-window Rate Limiter V1  
+> **Primary Java Theme:** Primitive/reference semantics, heap/stack, arrays, object layout, locality  
+> **Engineering Theme:** Close one deliberately deferred Phase-1 implementation/testing gap  
+> **HLD Scope:** Local vs global Rate Limiter guarantees; do not implement a distributed limiter yet
 
 ---
 
-# Why Day 10 Looks Like This
+# Why Day 10 Is Expanded
 
 Day 9 completed:
 
-- LRU Cache implementation and testing
-- map ↔ DLL agreement reasoning
+- LRU Cache implementation and tests
 - exact binary search
 - lower-bound / first-true reasoning
 - `[0, n]` answer-space reasoning
-- Big-O vs cache-locality discussion
+- Big-O vs locality discussion
 - Rate Limiter requirement clarification
-- fixed-window vs rolling-window semantics
+- fixed vs rolling window semantics
 - token-bucket distinction
-- rolling-window safety invariant
+- Rate Limiter safety-invariant formulation
 
-The registry still identifies one active precision skill:
+The active gaps are now narrower:
 
 ```text
+binary-search boundary precision
 invariant formulation
+Java memory-model foundations
+simple Rate Limiter implementation
+a small amount of deferred engineering evidence
 ```
 
-and one direct retrieval task:
+Because this is one of three temporarily longer sessions, Day 10 will use the extra time for:
 
 ```text
-canonical lower-bound rewrite from memory
+more transfer problems
++
+more implementation
++
+more tests
++
+more retrieval
 ```
 
-The Phase-1 master curriculum still includes:
-
-- binary search
-- primitive vs reference types
-- object headers
-- array layout
-- heap vs stack
-- virtual vs physical memory
-- CPU cache
-- JIT introduction
-- simple Rate Limiter LLD
-
-Therefore Day 10 should not start trees/heaps yet.
-
-It should close the remaining Phase-1 foundation loops first.
+not for prematurely jumping into trees, heaps, or concurrency.
 
 ---
 
-# Today's Objectives
+# Today's Outcomes
 
 By the end of Day 10, you should be able to:
 
-- state an invariant as a property, not as an algorithm
-- rewrite canonical lower bound from memory
-- distinguish exact search, lower bound, and upper bound
-- solve a fresh duplicate-heavy binary-search problem
-- derive first/last occurrence from boundary search
-- implement and test a simple fixed-window Rate Limiter
-- state the Rate Limiter invariant precisely
-- explain why time semantics are part of correctness
-- distinguish primitive values from object references in Java
-- explain stack frames vs heap objects at interview depth
-- explain what an array of references actually stores
-- understand object-header/reference overhead conceptually
-- distinguish JVM heap/stack abstractions from CPU cache
-- identify why a local in-memory Rate Limiter is insufficient across multiple service instances
-- diagnose memory-growth and boundary-burst behavior in a production-style Rate Limiter
+- state invariants as properties rather than implementation steps
+- reimplement lower bound from memory
+- distinguish exact search, lower bound, upper bound, first occurrence, and last occurrence
+- solve multiple binary-search transfer problems without being told the pattern
+- explain why each boundary update is safe
+- implement and test a fixed-window Rate Limiter
+- explain fixed-window burst behavior as a semantic consequence
+- identify why local Rate Limiting is not global Rate Limiting
+- distinguish primitive values from references
+- explain stack-frame vs heap-object mental models
+- explain `int[]` vs `Person[]`
+- explain object/reference overhead conceptually
+- separate JVM heap/stack from CPU cache
+- close one deferred engineering item with tests
 
 ---
 
-# Session 1 — Retrieval Gate
+# Session 1 — Retrieval & Precision Gate
 
-**15 minutes**
+**20 minutes**
 
 No notes initially.
 
-## Part A — State an Invariant
+## 1. Invariant Drill
 
-Question:
+State one invariant from each category.
 
-> What is an invariant?
+### DSA
 
-Do **not** answer with implementation steps.
+Binary search:
 
-Use the structure:
+> If the target exists and has not already been returned, its index remains in the current candidate interval.
 
-```text
-While the algorithm/system is correct,
-what property must remain true?
-```
+### Data Structure
 
-Examples from previous days:
-
-```text
 LRU:
-map and DLL represent the same logical cache entries
 
-Exact binary search:
-if target exists, its index remains inside the current candidate interval
+> The map and DLL contain exactly the same logical cache entries.
 
-Rolling Rate Limiter:
-accepted requests in the preceding 60 seconds <= limit
-```
+### System
 
-## Part B — Rewrite Lower Bound From Memory
+Rate Limiter:
+
+> Accepted requests must not exceed the configured allowance under the chosen time semantics.
+
+Now create **one new invariant in your own words**.
+
+Do not describe an algorithm.
+
+---
+
+## 2. Canonical Lower Bound From Memory
 
 Requirement:
 
-> Return the first index `i` such that `nums[i] >= target`. Return `n` if no such index exists.
+```text
+first index i where nums[i] >= target
+```
 
-Use answer space:
+Answer range:
 
 ```text
 [0, n]
 ```
 
-Before coding, explain:
+Explain before coding:
 
 ```text
 nums[mid] < target
-→ mid is impossible
+→ mid is definitely invalid
+→ discard through mid
 → left = mid + 1
 ```
-
-and:
 
 ```text
 nums[mid] >= target
 → mid is valid
-→ but an earlier valid answer may exist
+→ but earlier valid candidate may exist
+→ preserve mid
 → right = mid
 ```
 
-## Part C — Exact Search vs Boundary Search
-
-Explain:
-
-```text
-Exact search
-→ find a value
-
-Lower bound
-→ find first position satisfying value >= target
-```
-
-Then answer:
-
-> Why can exact search discard `mid` after proving it wrong, while lower bound sometimes has to preserve `mid`?
+Then implement from memory.
 
 ---
 
-# Session 2 — DSA Transfer: Find First and Last Position of Target
+## 3. Exact vs Boundary Search
 
-**40 minutes**
+Answer quickly:
+
+```text
+Exact search:
+what are we searching for?
+
+Lower bound:
+what boundary are we searching for?
+
+Why can exact search discard mid?
+
+Why can lower bound sometimes not discard mid?
+```
+
+---
+
+# Session 2 — DSA Problem 1: First and Last Position of Target
+
+**35 minutes**
 
 Problem:
 
-> Given a sorted array that may contain duplicates, return the first and last index of `target`. If absent, return `[-1, -1]`.
+> Given a sorted array with duplicates, return the first and last positions of a target.
 
-Examples:
+Example:
 
 ```text
-[5,7,7,8,8,10], target = 8 → [3,4]
-[5,7,7,8,8,10], target = 6 → [-1,-1]
-[2,2,2,2], target = 2       → [0,3]
-[], target = 4              → [-1,-1]
+[5,7,7,8,8,10], target = 8
+→ [3,4]
 ```
 
 Do not start with "two binary searches."
 
-## Step 1 — Objective
-
-We need:
+Use the full abstraction-first protocol:
 
 ```text
-first occurrence
-+
-last occurrence
+1. Objective
+2. Search space
+3. Relevant information
+4. Discardable information
+5. Brute force
+6. Repeated work
+7. Safe elimination
+8. Enabling property
+9. Boundary formulation
+10. Code
+11. Tests
 ```
 
-## Step 2 — Brute Force
+---
 
-Scan:
+## Derive the Left Boundary
 
-```text
-O(n)
-```
-
-Then ask:
-
-> What property lets us do better?
-
-Answer:
-
-```text
-sorted order
-+
-duplicates are contiguous
-```
-
-## Step 3 — Left Boundary
-
-First occurrence:
+First occurrence is:
 
 ```text
 first index where nums[i] >= target
 ```
 
-Then verify:
+Then validate:
 
 ```text
 nums[first] == target
 ```
 
-If not:
+---
 
-```text
-target absent
-```
+## Derive the Right Boundary
 
-## Step 4 — Right Boundary
+Do not memorize "upper bound."
 
-Find:
+Ask:
+
+> What is the first index that definitely lies after every occurrence of target?
+
+Answer:
 
 ```text
 first index where nums[i] > target
@@ -237,38 +227,12 @@ first index where nums[i] > target
 Then:
 
 ```text
-last occurrence = firstGreaterThanTarget - 1
+last = firstGreaterThanTarget - 1
 ```
 
-## Predicate View
+---
 
-Lower bound:
-
-```text
-nums[i] >= target
-false false true true true
-```
-
-Upper bound:
-
-```text
-nums[i] > target
-false false false true true
-```
-
-Both are first-true searches.
-
-## Required Invariants
-
-Lower bound:
-
-> All indices strictly before `left` are proven to contain values `< target`.
-
-Upper bound:
-
-> All indices strictly before `left` are proven to contain values `<= target`.
-
-## Edge Cases
+## Required Tests
 
 ```text
 []
@@ -287,21 +251,186 @@ Complexity:
 O(log n)
 ```
 
-iterative auxiliary space:
+---
+
+# Session 3 — DSA Problem 2: Count Occurrences in Sorted Array
+
+**25 minutes**
+
+Fresh transfer.
+
+Problem:
+
+> Given a sorted array and a target, return how many times the target occurs.
+
+Do not scan after finding one target.
+
+Reason:
 
 ```text
-O(1)
+count
+=
+rightBoundary - leftBoundary
+```
+
+More precisely:
+
+```text
+firstGreaterThanTarget
+-
+firstGreaterThanOrEqualToTarget
+```
+
+Example:
+
+```text
+[1,2,2,2,3,4], target = 2
+→ 3
 ```
 
 ---
 
-# Session 3 — Java Memory Foundations: Primitive, Reference, Stack, Heap
+## Key Question
 
-**35 minutes**
+Why is this still:
 
-No GC deep dive.
+```text
+O(log n)
+```
 
-## Primitive Value
+rather than:
+
+```text
+O(k)
+```
+
+where `k` is the number of duplicates?
+
+Because we never enumerate all matching elements.
+
+---
+
+## Edge Cases
+
+```text
+target absent
+all elements same
+single element
+empty array
+target before all
+target after all
+```
+
+---
+
+# Session 4 — DSA Problem 3: Search Insert Position Under Interview Conditions
+
+**25 minutes**
+
+This is deliberately easier algorithmically.
+
+The purpose is **independence and communication**.
+
+Problem:
+
+> Return the index where target exists or should be inserted to preserve sorted order.
+
+This is effectively lower bound.
+
+But pretend the pattern name is unavailable.
+
+Your interview answer should sound like:
+
+> "I'm looking for the first position whose value is not less than target. Sorted order makes the predicate monotonic, so I can binary-search that boundary."
+
+Then code without assistance.
+
+---
+
+# Session 5 — DSA Problem 4: First Bad Version Style Predicate
+
+**25 minutes**
+
+No array values.
+
+Imagine versions:
+
+```text
+1 ... n
+```
+
+and an API:
+
+```text
+isBad(version)
+```
+
+Once versions become bad, all later versions are bad:
+
+```text
+false false false true true true
+```
+
+Find the first bad version.
+
+---
+
+## Purpose
+
+This removes the visual crutch of a sorted integer array.
+
+You must recognize:
+
+```text
+monotonic predicate
+```
+
+as the real binary-search requirement.
+
+---
+
+## Questions
+
+1. What is the search space?
+2. What is the predicate?
+3. Why can one region be eliminated?
+4. Which candidate must be preserved?
+5. What are the boundary conditions?
+
+Target:
+
+```text
+O(log n)
+```
+
+API calls.
+
+---
+
+# DSA Block Exit
+
+By now you should be able to articulate:
+
+```text
+Binary search does not fundamentally require an array.
+
+It requires:
+ordered candidate space
++
+monotonic decision/predicate
++
+safe elimination
+```
+
+Do not yet jump to binary-search-on-answer problems.
+
+---
+
+# Session 6 — Java Memory Foundations: Primitive vs Reference
+
+**30 minutes**
+
+## Primitive
 
 ```java
 int x = 42;
@@ -310,10 +439,10 @@ int x = 42;
 Conceptually:
 
 ```text
-x contains primitive value 42
+x contains 42
 ```
 
-## Reference Variable
+## Reference
 
 ```java
 Person p = new Person();
@@ -322,88 +451,172 @@ Person p = new Person();
 Conceptually:
 
 ```text
-p → reference
-Person object → separate object
+p
+→ reference
+
+Person object
+→ separate object
 ```
 
 The reference is not the object.
 
-## Stack Frame
+---
 
-A method frame conceptually contains:
+## Aliasing
 
-```text
-parameters
-local variables
-intermediate execution state
-return information
-```
-
-This is a JVM-level mental model, not an exact physical-layout promise.
-
-## Heap
-
-Objects and arrays are generally heap-managed allocations:
+Consider:
 
 ```java
-new Person()
-new int[100]
-new Object[100]
+Person a = new Person();
+Person b = a;
+```
+
+Questions:
+
+```text
+How many Person objects?
+How many reference variables?
+Does modifying b's object affect what a observes?
+Why?
+```
+
+Target:
+
+```text
+one object
+two references to same object
 ```
 
 ---
 
-# Critical Array Distinction
+## Reference Reassignment
+
+```java
+Person a = new Person("A");
+Person b = a;
+
+b = new Person("B");
+```
+
+Now reason about:
+
+```text
+a
+b
+object A
+object B
+```
+
+This is foundational for later Java/JVM/concurrency discussions.
+
+---
+
+# Session 7 — Java Memory Foundations: Stack Frames & Heap Objects
+
+**25 minutes**
+
+Use:
+
+```java
+void process(Person p, int count) {
+    int local = count + 1;
+}
+```
+
+Conceptually reason about the method frame containing:
+
+```text
+reference p
+primitive count
+primitive local
+execution state
+```
+
+The `Person` object itself is separate.
+
+Do not over-literalize exact machine layout.
+
+---
+
+## Heap Mental Model
+
+Objects and arrays are normally treated conceptually as heap-managed allocations:
+
+```java
+new Person()
+new int[10]
+new Object[10]
+```
+
+Later JVM optimization may alter physical behavior internally, but that does not change the programming mental model required here.
+
+---
+
+# Session 8 — Arrays: Primitive Array vs Reference Array
+
+**25 minutes**
 
 Compare:
 
 ```java
-int[] numbers = new int[100];
-Person[] people = new Person[100];
+int[] numbers = new int[3];
 ```
 
-`int[]` stores:
+and:
 
-```text
-100 primitive int values
+```java
+Person[] people = new Person[3];
 ```
 
-`Person[]` stores:
+Draw both.
+
+Primitive:
 
 ```text
-100 reference slots
+numbers
+  ↓
+[ 0 | 0 | 0 ]
 ```
 
-It does **not** create 100 `Person` objects.
-
-Draw:
+Reference:
 
 ```text
-stack frame
-│
-└── people reference
-       ↓
-heap
-Person[] array
+people
+  ↓
+[ null | null | null ]
+```
+
+Then:
+
+```java
+people[0] = new Person("A");
+people[1] = new Person("B");
+```
+
+becomes:
+
+```text
 [ refA | refB | null ]
     ↓      ↓
- PersonA  PersonB
+    A      B
 ```
+
+Key statement:
+
+> `new Person[3]` creates one array object containing three reference slots; it does not create three Person objects.
 
 ---
 
-# Session 4 — Object Overhead & Layout Mental Model
+# Session 9 — Object Layout & Data-Structure Memory Cost
 
-**20 minutes**
+**25 minutes**
 
-Conceptually, an object contains:
+Conceptual object components:
 
 ```text
 object header
-+
 instance fields
-+
-possible padding/alignment
+padding/alignment
 ```
 
 Example:
@@ -415,48 +628,54 @@ class Node {
 }
 ```
 
-Mental model:
+Think:
 
 ```text
-object header
-int value
-reference next
-possible padding
+Node object
+├── header
+├── int value
+├── reference next
+└── possible padding
 ```
 
-The next Node is a separate object.
-
-Primitive array:
+Then compare storing 1,000 integers as:
 
 ```text
-header
-+
-length metadata
-+
-contiguous primitive elements
+int[1000]
 ```
 
-Reference array:
+vs:
 
 ```text
-header
-+
-length metadata
-+
-contiguous reference slots
+1,000 linked Node objects
 ```
 
-Do not memorize exact byte sizes yet.
+Do not calculate exact bytes yet.
+
+Discuss directionally:
+
+```text
+primitive array
+→ one object + primitive payload
+
+linked list
+→ many Node objects
+→ many headers
+→ references
+→ more allocations
+→ pointer chasing
+→ GC pressure
+```
 
 ---
 
-# Session 5 — JVM Heap/Stack vs CPU Cache
+# Session 10 — JVM Heap/Stack vs CPU Cache
 
-**15 minutes**
+**20 minutes**
 
-Keep abstraction layers separate.
+Separate abstraction layers.
 
-JVM-level:
+JVM concepts:
 
 ```text
 heap
@@ -466,68 +685,71 @@ references
 arrays
 ```
 
-Hardware-level:
+Hardware concepts:
 
 ```text
-registers
-CPU caches
+CPU registers
+L1/L2/L3 cache
 RAM
 cache lines
 ```
 
-Do not say:
+An object can logically live in the JVM heap while some of its bytes are currently resident in CPU cache.
 
-> JVM stack = CPU cache.
-
-An array may be a heap object while recently accessed portions of it are present in CPU cache.
-
-Arrays often benefit from:
-
-```text
-contiguous elements
-→ spatial locality
-→ cache-line reuse
-→ hardware prefetch
-```
-
-Linked nodes may involve:
-
-```text
-pointer chasing
-→ scattered accesses
-→ more cache misses
-```
-
-Memory behavior is separate from Big-O.
+These are not contradictory.
 
 ---
 
-# Session 6 — Rate Limiter LLD: Implement Fixed Window V1
+## Spatial Locality
 
-**40 minutes**
+Arrays:
 
-Day 9 clarified several policies.
+```text
+contiguous elements
+→ nearby data often fetched together
+```
 
-Today implement exactly one:
+Linked nodes:
+
+```text
+node
+→ pointer
+→ another node somewhere else
+```
+
+potentially create more cache misses.
+
+Do not confuse:
+
+```text
+algorithmic complexity
+```
+
+with:
+
+```text
+memory-access behavior
+```
+
+---
+
+# Session 11 — Rate Limiter V1: Fixed-Window LLD
+
+**45 minutes**
+
+Day 9 clarified semantics.
+
+Today implement exactly:
 
 ```text
 Fixed Window
 ```
 
-Do not combine fixed window, rolling window, and token bucket.
+Requirement:
 
-## Requirement
+> For each customer, allow at most `limit` requests in each fixed interval of length `windowSize`.
 
-For each customer:
-
-> Allow at most `limit` accepted requests during each fixed window of `windowSize`.
-
-Example:
-
-```text
-limit = 100
-windowSize = 60 seconds
-```
+---
 
 ## API
 
@@ -535,174 +757,231 @@ windowSize = 60 seconds
 boolean allow(String customerId, Instant now)
 ```
 
-Pass time in so tests are deterministic.
+Pass `now` in.
 
-## Minimum State
+Do not hard-code `Instant.now()` throughout the implementation.
 
-Per customer:
+Reason:
 
 ```text
-windowStart/windowId
-acceptedCount
+deterministic tests
 ```
 
-Possible representation:
+---
+
+## Minimum State
 
 ```text
 Map<CustomerId, WindowState>
 ```
 
-Do not store every request timestamp. That would be solving a different policy.
+where:
+
+```text
+WindowState
+├── windowId
+└── acceptedCount
+```
+
+No request timestamp list.
+
+That would be a rolling-window implementation.
+
+---
+
+## Window Identity
+
+Example:
+
+```text
+windowId =
+epochSeconds / windowSizeSeconds
+```
+
+For:
+
+```text
+windowSize = 10 sec
+```
+
+windows become conceptually:
+
+```text
+[0,10)
+[10,20)
+[20,30)
+```
+
+---
 
 ## Invariant
 
-> For the customer's current fixed window, `acceptedCount` equals the number of accepted requests in that window and never exceeds `limit`.
+> For each customer's current fixed window, `acceptedCount` equals the number of accepted requests in that window and never exceeds `limit`.
 
-## Decision Flow
+Do not answer:
 
-No state:
+> "Check timestamp then increment."
+
+That is implementation.
+
+---
+
+## Flow
+
+### No Existing State
 
 ```text
-create current window
+create WindowState
 count = 1
 allow
 ```
 
-Same window:
+### Same Window
 
 ```text
 count < limit
-→ increment and allow
+→ count++
+→ allow
 
 count == limit
 → reject
 ```
 
-New window:
+### Different Window
 
 ```text
-reset to current window
+replace/reset state
 count = 1
 allow
 ```
 
-## Window Identity
+---
 
-Use deterministic window identity, e.g.:
+# Session 12 — Rate Limiter Tests
 
-```text
-windowId = epochSeconds / windowSizeSeconds
-```
+**30 minutes**
 
-Do not use "60 seconds since this customer's first request" unless that is explicitly the policy.
-
-## Required Tests
-
-Use:
+Configuration:
 
 ```text
 limit = 3
-window = 10 seconds
+window = 10 sec
 ```
 
-Test:
+Required tests:
 
-- first request
-- requests within limit
-- fourth request rejected
-- next fixed window resets
-- per-customer isolation
-- exact window boundary
-- invalid `limit`
-- invalid `windowSize`
+```text
+first request allowed
+three requests allowed
+fourth rejected
+new window resets
+per-customer isolation
+exact boundary behavior
+rejection does not increase acceptedCount
+multiple windows
+invalid limit
+invalid window size
+```
 
 ---
 
-# Session 7 — HLD/Production: Local vs Global Rate Limiting
+## Important Regression
 
-**15 minutes**
+After rejection:
+
+```text
+count must remain == limit
+```
+
+Do not accidentally increment before deciding.
+
+---
+
+## Boundary Test
+
+If:
+
+```text
+t = 9
+```
+
+belongs to:
+
+```text
+window 0
+```
+
+then:
+
+```text
+t = 10
+```
+
+belongs to:
+
+```text
+window 1
+```
+
+Be explicit.
+
+---
+
+# Session 13 — Rate Limiter HLD: Local vs Global
+
+**20 minutes**
 
 Suppose:
 
 ```text
-3 application nodes
+3 service instances
 ```
 
-Each independently allows:
+Each instance independently enforces:
 
 ```text
 100 requests/min/customer
 ```
 
-A customer's traffic is spread across all nodes.
+Traffic is load balanced.
 
-Potential accepted total:
+Possible total:
 
 ```text
-node A → 100
-node B → 100
-node C → 100
+instance A → 100
+instance B → 100
+instance C → 100
+```
 
-global → 300
+Global:
+
+```text
+300
 ```
 
 Therefore:
 
-```text
-local limiter correctness
-!=
-global distributed limit
-```
-
-Do not implement the distributed version today.
-
-## Production Concerns
-
-### State Growth
-
-Millions of one-time customer IDs can grow:
-
-```text
-Map<CustomerId, WindowState>
-```
-
-indefinitely unless stale state is cleaned up.
-
-### Boundary Burst
-
-Fixed windows can allow:
-
-```text
-100 near end of one window
-+
-100 near start of next
-```
-
-in a short real-time interval.
-
-That is a semantic trade-off, not necessarily an implementation bug.
-
-### Clock Dependence
-
-Ask:
-
-- what clock is used?
-- can time move backward?
-- how do tests control time?
-- how would multi-node clock skew matter later?
+> A correct local limiter does not imply a correct global distributed limiter.
 
 ---
 
-# Session 8 — Production Debugging Scenario
+## Do Not Solve Yet
 
-**10 minutes**
+Do not start designing Redis/Lua/consensus.
 
-Configuration:
+Just derive the missing requirement:
 
-```text
-limit = 100/min/customer
-single-node fixed-window limiter
-```
+> All request decisions affecting the same logical limit must coordinate against authoritative shared state or equivalent global partition ownership.
+
+That's enough for today.
+
+---
+
+# Session 14 — Production Reasoning: State Growth & Window Bursts
+
+**20 minutes**
+
+## Scenario A — State Growth
 
 Metrics:
 
@@ -712,7 +991,7 @@ request rate ↑ 1.5x
 heap usage steadily ↑
 GC frequency ↑
 CPU moderately ↑
-rate-limit rejects normal
+reject rate normal
 ```
 
 Reason:
@@ -720,195 +999,354 @@ Reason:
 ```text
 Observation
 ↓
-what retained state grows?
+What retained state grows?
 ↓
-why?
+What evidence confirms it?
 ↓
-what evidence confirms it?
-↓
-mitigation direction
+Mitigation direction
 ```
 
 Inspect:
 
 ```text
-number of limiter-map entries
+limiter map size
 entry age
-unique customer cardinality
-cleanup behavior
-allocation/GC metrics
+unique key cardinality
+cleanup policy
+allocation metrics
+GC behavior
 ```
 
-Do not jump directly to increasing heap size.
+Do not immediately increase heap size.
 
 ---
 
-# Session 9 — End-of-Day Retrieval
+## Scenario B — Fixed-Window Burst
 
-**10 minutes**
+Limit:
 
-Answer without notes.
+```text
+100/min
+```
 
-1. What is an invariant?
-2. Why does lower bound preserve `mid` when `nums[mid] >= target`?
-3. How can first/last occurrence be expressed using boundaries?
-4. What is the difference between a primitive value and a reference?
-5. Does `new Person[100]` create 100 Person objects?
-6. What conceptually exists inside a Node object?
-7. What is the difference between JVM heap and CPU cache?
-8. Why can arrays have better locality than linked nodes?
-9. State the fixed-window Rate Limiter invariant.
-10. Why is time passed into the limiter useful for tests?
-11. Why does a local limiter not guarantee a global multi-node limit?
-12. Why can fixed-window semantics permit a boundary burst?
-13. Why can limiter state cause memory growth?
+Client sends:
+
+```text
+100 requests at 10:00:59
+100 requests at 10:01:00
+```
+
+Both groups may be accepted under fixed-window semantics.
+
+Question:
+
+> Is this an implementation bug?
+
+No, if fixed-window semantics were intentionally selected.
+
+Then ask:
+
+> If product requirements prohibit this behavior, what does that tell you?
+
+Answer:
+
+> The chosen algorithm does not match the required time semantics.
+
+---
+
+# Session 15 — Engineering Debt Closure
+
+**30–40 minutes**
+
+Close **one** old Phase-1 engineering item.
+
+Priority order:
+
+```text
+1. Dynamic Array quality-gate tests
+2. Product Except Self JUnit tests
+3. JMH implementation
+```
+
+Pick the highest-priority item that is actually incomplete.
+
+Do not do all three.
+
+---
+
+## Option A — Dynamic Array Quality Gate
+
+Verify:
+
+```text
+first insertion
+growth
+preserve existing values
+negative index rejected
+index == size rejected
+remove first
+remove middle
+remove last
+size updated once
+```
+
+Add/repair tests.
+
+---
+
+## Option B — Product Except Self Tests
+
+Test:
+
+```text
+[1,2,3,4]
+one zero
+two zeros
+negative values
+single-element contract if applicable
+```
+
+Confirm:
+
+```text
+O(n)
+O(1) auxiliary excluding output
+```
+
+---
+
+## Option C — JMH
+
+Only if the first two are already fully closed.
+
+Benchmark a simple meaningful comparison such as:
+
+```text
+sequential array traversal
+vs
+linked-node traversal
+```
+
+or another already-understood Phase-1 comparison.
+
+Focus on:
+
+```text
+warmup
+measurement
+fork
+avoiding dead-code elimination
+```
+
+Do not turn this into a benchmarking rabbit hole.
+
+---
+
+# Session 16 — Mixed Interview Drill
+
+**25 minutes**
+
+No pattern labels.
+
+I should give you three short prompts from earlier material.
+
+Examples:
+
+### A
+
+Unsorted numbers + target pair.
+
+### B
+
+Positive array + shortest region meeting a sum.
+
+### C
+
+Linked list + determine whether cycle exists.
+
+For each, answer only:
+
+```text
+objective
+brute force
+waste
+enabling property
+minimum state
+invariant
+complexity
+```
+
+No code unless reasoning is weak.
+
+Purpose:
+
+> Keep earlier patterns alive while learning new material.
+
+---
+
+# End-of-Day Retrieval
+
+**15 minutes**
+
+Without notes:
+
+1. State an invariant without describing an implementation.
+2. Why does lower bound use `right = mid`?
+3. What predicate gives the first occurrence of target?
+4. What predicate gives the boundary after the last occurrence?
+5. What fundamentally makes binary search possible?
+6. What is the difference between a primitive and a reference?
+7. How many objects does `new Person[100]` create immediately?
+8. What does a reference array contain?
+9. What conceptually exists in a linked Node?
+10. Why are linked structures more allocation-heavy than primitive arrays?
+11. JVM heap vs CPU cache?
+12. State the fixed-window Rate Limiter invariant.
+13. Why pass time into `allow()`?
+14. Why can three correct local limiters violate one global limit?
+15. Why is a fixed-window boundary burst not automatically a bug?
+16. What old engineering debt did you close today?
 
 ---
 
 # Deliverables
 
-## Binary Search
+## DSA
 
-- [ ] invariant stated as a property
-- [ ] lower bound rewritten from memory
-- [ ] exact vs boundary search explained
-- [ ] first/last occurrence derived
-- [ ] lower-bound reuse derived
-- [ ] first-greater-than boundary derived
-- [ ] duplicate-heavy tests pass
-- [ ] O(log n) explained
+- [ ] lower bound implemented from memory
+- [ ] first/last occurrence implemented
+- [ ] count-occurrences transfer completed
+- [ ] Search Insert solved independently
+- [ ] first-bad-version predicate search completed
+- [ ] boundary invariants explained
+- [ ] all DSA complexity proofs stated clearly
 
 ## Java Memory
 
-- [ ] primitive vs reference explained
-- [ ] stack frame vs heap object explained
-- [ ] `int[]` vs `Person[]` explained
-- [ ] reference-array diagram correct
-- [ ] Node object layout explained conceptually
-- [ ] object header/fields/padding introduced
-- [ ] JVM heap vs CPU cache distinction clear
-- [ ] array locality vs pointer chasing explained
+- [ ] primitive/reference distinction
+- [ ] aliasing explained
+- [ ] stack frame / heap object explained
+- [ ] primitive-array vs reference-array diagram
+- [ ] object layout concepts
+- [ ] linked-node overhead
+- [ ] heap vs CPU-cache distinction
+- [ ] locality explanation
 
-## Rate Limiter V1
+## Rate Limiter
 
-- [ ] fixed-window policy chosen
-- [ ] `allow(customerId, now)` API defined
+- [ ] fixed-window API defined
 - [ ] minimum state derived
 - [ ] invariant stated
 - [ ] implementation completed
-- [ ] deterministic tests completed
+- [ ] unit tests pass
+- [ ] exact boundary tested
 - [ ] per-customer isolation tested
-- [ ] boundary behavior tested
-- [ ] invalid configuration defined
+- [ ] rejection-count behavior tested
+- [ ] invalid configuration tested
 
 ## HLD / Production
 
-- [ ] local-vs-global enforcement limitation explained
-- [ ] state-growth risk identified
+- [ ] local-vs-global limitation explained
+- [ ] state-growth failure diagnosed
 - [ ] boundary-burst trade-off explained
-- [ ] clock dependency identified
-- [ ] production memory-growth scenario diagnosed
+- [ ] global coordination requirement identified
+
+## Engineering Closure
+
+- [ ] one old Phase-1 debt item fully closed
+- [ ] tests/evidence added
+- [ ] registry no longer carries that item as incomplete
 
 ---
 
-# End-of-Day Exit Criteria
+# Exit Criteria
+
+Day 10 is complete when:
 
 ## Binary Search
 
-You can derive:
+You can derive multiple boundary problems from:
 
 ```text
-first >= target
-first > target
-first occurrence
-last occurrence
+monotonic predicate
 ```
 
-from monotonic predicates without memorizing independent templates.
+rather than memorizing independent templates.
 
 ## Invariants
 
-You state:
+You consistently state:
 
 ```text
 what must remain true
 ```
 
-not:
+rather than:
 
 ```text
-what the algorithm does next
+what the implementation does
 ```
 
 ## Java Memory
 
-You can explain:
+You can cleanly explain:
 
 ```text
-local reference
-↓
-array object
-↓
-reference slots
-↓
-separate objects
+primitive value
+reference
+object
+array of primitives
+array of references
+stack frame
+heap object
+CPU cache
 ```
 
-and keep:
-
-```text
-JVM heap/stack
-```
-
-separate from:
-
-```text
-CPU cache/RAM
-```
+without mixing abstraction layers.
 
 ## Rate Limiter
 
-You can move through:
+You have a tested, single-node fixed-window implementation whose behavior matches an explicitly defined time policy.
+
+## Production
+
+You can explain why:
 
 ```text
-requirement
-↓
-time semantics
-↓
-minimum state
-↓
-invariant
-↓
-implementation
-↓
-tests
+correct algorithm locally
 ```
 
-The fixed-window limiter may be considered complete at the **Phase-1 LLD level**.
+does not automatically imply:
 
-It is not yet a distributed production Rate Limiter.
+```text
+correct system globally
+```
+
+## Engineering Discipline
+
+At least one previously deferred Phase-1 deliverable is now actually closed.
 
 ---
 
 # Intentionally Deferred
 
-Do not add:
+Do **not** add today:
 
+- Redis-backed Rate Limiter
 - distributed Rate Limiter implementation
-- Redis-backed limiter
-- Lua
+- rolling-window implementation
 - token-bucket implementation
-- rolling-window-log implementation
 - thread safety
 - Java Memory Model
 - `volatile`
 - CAS
 - GC algorithms
-- exact object-byte-size memorization
-- virtual-memory/page-fault deep dive
 - trees/heaps
 - binary search on answer
 - rotated-array search
+- multiple old debt items
+
+The next two intensive sessions can continue accelerating Phase-1 closure and transition readiness.
 
 ---
 
@@ -916,38 +1354,34 @@ Do not add:
 
 Start with:
 
-> **State one invariant from any problem we have solved, but state only the property that must remain true — do not describe the implementation.**
+> **State one invariant from any earlier problem, but do not describe the algorithm. State only the property that must remain true.**
 
 Then:
 
-> **Rewrite lower bound from memory using answer space `[0, n]`, and explain why `right = mid` preserves a valid candidate.**
+> **Implement lower bound from memory using answer space `[0, n]` and explain why a valid `mid` must sometimes remain in the search space.**
 
-If clean, immediately move into the first/last-position transfer problem.
+Then immediately begin the first/last-position transfer problem.
 
 ---
 
 # Registry Update Requirements
 
-At the end of Day 10, update `cirriculum/registry.md` using evidence only.
+At the end of Day 10 record only demonstrated evidence:
 
-Capture:
-
-1. invariant-retrieval quality
-2. canonical lower-bound rewrite status
-3. first/last-position reasoning and implementation
-4. boundary/off-by-one mistakes observed
-5. primitive/reference evidence
-6. stack/heap explanation quality
-7. array/reference-array understanding
-8. object-layout terminology precision
-9. JVM heap vs CPU-cache distinction
-10. Rate Limiter V1 implementation status
-11. Rate Limiter tests passing
-12. local-vs-global reasoning
-13. production memory-growth diagnosis
-14. remaining Phase-1 gaps
-15. exact Day 11 starting action
-
-Do not advance to Phase 2 merely because the calendar says so.
-
-Advance when the remaining Phase-1 exit criteria are evidenced.
+1. lower-bound rewrite quality
+2. invariant-formulation quality
+3. first/last-position implementation
+4. additional binary-search transfer performance
+5. boundary mistakes observed
+6. Java primitive/reference understanding
+7. stack/heap explanation
+8. array/reference-array reasoning
+9. object-layout terminology
+10. heap-vs-cache distinction
+11. fixed-window Rate Limiter implementation
+12. Rate Limiter tests
+13. local-vs-global reasoning
+14. production state-growth reasoning
+15. engineering-debt item closed
+16. exact remaining Phase-1 gaps
+17. exact Day 11 starting action
