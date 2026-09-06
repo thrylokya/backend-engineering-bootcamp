@@ -1,1804 +1,390 @@
-# Current Position
+## Day 11 — Retrieval, Transfer, Memory, HLD, Production Debugging
 
-* **Phase:** Phase 1 — Foundations: Data Structures, Complexity & Memory
-* **Latest Curriculum Worked:** Day 10 — Intensive: Binary-Search Transfer, Java Memory Foundations & Fixed-Window Rate Limiter V1
-* **Day 10 Date:** 2026-08-30
-* **Status:** Day 10 completed at the conceptual and implementation-learning level. Binary-search boundary reasoning was transferred across first/last occurrence, count occurrences, Search Insert Position, and First Bad Version. Java memory foundations covered primitive/reference semantics, aliasing, stack frames vs heap objects, primitive arrays vs reference arrays, object headers, field layout, padding/alignment, references inside objects, and CPU-cache locality. A single-node Fixed-Window Rate Limiter V1 was designed and implemented with per-user `WindowState`. Rate-limiter implementation tests remain deliberately pending and should be completed as a short engineering-quality gate rather than re-teaching the design.
-* **Next Curriculum:** Day 11 — generate from `MASTER_CURRICULUM.md + registry.md + Day 10 evidence`
-* **Primary Language:** Java
-* **Target Level:** Strong Senior / Lead / Staff-level backend engineering capability
-* **Primary Goal:** Production engineering excellence + top-tier interview readiness
+**Status:** Completed conceptually
+**Phase advancement:** Do not advance phase solely because Day 11 is complete. Continue to evaluate based on demonstrated retrieval and transfer across upcoming sessions.
 
----
+### DSA — Subarray Sum Equals K
 
-# Day 10 — Completed Learning & Evidence
+* Reconstructed the brute-force approach independently:
 
-## 1. Invariant Precision
+  * Fix each start index.
+  * Expand the end index.
+  * Maintain a running sum.
+  * Do not stop early when the sum exceeds or reaches the target because negative values can later change the sum.
 
-Working definition consolidated:
+* Derived the prefix-sum relationship:
 
-> An invariant is a property that must remain true throughout relevant state transitions while an algorithm/system remains correct.
+  `currentPrefix - earlierPrefix = target`
 
-Important distinction reinforced:
+  therefore:
 
-```text
-Invariant
-→ what must remain true
+  `earlierPrefix = currentPrefix - target`
 
-Algorithm / implementation
-→ what we do to preserve it
-```
+* Understood why a frequency map is required instead of a set:
 
-Examples retrieved:
+  * The same prefix sum may occur at multiple earlier boundaries.
+  * Each occurrence represents a distinct possible starting boundary for a valid subarray.
 
-```text
-Binary search:
-if target exists, its candidate index remains inside the search region
+* Understood the purpose of the initial prefix entry:
 
-LRU:
-map and DLL contain the same logical cache entries
+  `0 -> 1`
 
-Fixed-window Rate Limiter:
-for the customer's current fixed window,
-acceptedCount equals accepted requests in that window
-and never exceeds the configured limit
-```
+  It represents the boundary before index `0` and enables counting subarrays that begin at index `0`.
 
-Initial tendency to mix boundary movement with invariant definition continues to improve.
+* Correctly implemented an O(n) expected-time solution after debugging two mistakes:
 
-Carry forward:
+  * Lookup must be `currentPrefix - target`.
+  * The map must store frequencies of observed prefix sums, not frequencies of lookup values.
 
-> Ask "what property must remain true?" before describing implementation steps.
+* Verified the implementation against positive, negative, zero-heavy, empty-array, and single-element cases.
+
+* Retrieval check:
+
+  * Reconstructed the reasoning behind prefix sums and frequency counting without being given the pattern.
+  * Minor wording imprecision remained around which quantity is subtracted from which, but the underlying invariant was retained.
+
+**Current DSA evidence:** Prefix-sum + frequency-map pattern is understood at a conceptual level. Needs spaced retrieval on a different problem before marking the pattern as independently transferable.
 
 ---
 
-# Binary Search Transfer
+### Java / OS Memory — Virtual vs Physical Memory
 
-## 2. Canonical Lower Bound — `[0, n]`
+* Established the distinction between:
 
-Requirement:
+  * Java heap
+  * process virtual address space
+  * virtual pages
+  * physical frames
+  * physical RAM
 
-```text
-first index i such that nums[i] >= target
-```
+* Understood that ordinary application memory accesses operate through virtual addresses rather than directly using physical RAM addresses.
 
-If no such element exists:
+* Understood the conceptual translation path:
 
-```text
-return n
-```
+  `virtual address -> MMU/page table -> physical address -> RAM`
 
-Canonical search space:
+* Clarified:
 
-```text
-[0, n]
-```
+  * Virtual memory is primarily an addressing/isolation abstraction, not merely "extra RAM on disk."
+  * Virtual address spaces provide isolation, stable addressing, flexible allocation, protection, and controlled sharing.
 
-Important correction from initial implementation:
+* Understood paging:
 
-```java
-right = nums.length - 1;
-```
+  * Virtual memory is divided into pages.
+  * Physical RAM is divided into frames.
+  * A page table maps virtual pages to physical frames.
+  * Virtual address = virtual page number + offset.
+  * The offset remains unchanged during address translation.
 
-cannot represent answer:
+* Understood page faults:
 
-```text
-n
-```
+  * If a required virtual page is not resident in RAM, the CPU raises a page fault.
+  * The OS obtains the required page from its backing source, places it into a physical frame, updates the page table, and retries the instruction.
 
-Example:
+* Distinguished:
 
-```text
-[1,3,5], target = 10
-→ lower bound = 3
-```
+  * CPU cache miss from page fault.
+  * Cache miss means data is not currently in CPU cache.
+  * Page fault means the required virtual page is not currently resident in physical memory.
 
-Correct initialization:
+* Clarified that Java objects contain instance state; methods are not copied into every object.
 
-```java
-int left = 0;
-int right = nums.length;
-```
+* Retrieval check:
 
-Boundary movement:
+  * Correctly explained the overall page-table/MMU/page-fault flow.
+  * Needed arithmetic correction for a 4 KB page example:
 
-```text
-nums[mid] < target
-→ mid is definitely invalid
-→ left = mid + 1
-```
+    * address `8200`
+    * page size `4096`
+    * virtual page `2`
+    * offset `8`
+  * Retained the key invariant that translation changes the page/frame number while preserving the offset.
 
-```text
-nums[mid] >= target
-→ mid is a valid candidate
-→ an earlier valid candidate may exist
-→ preserve mid
-→ right = mid
-```
-
-Canonical implementation was subsequently reproduced correctly from memory.
+**Current memory evidence:** Core virtual-memory and paging model is understood. Arithmetic with page boundaries needs a little more fluency. TLB internals, page replacement algorithms, JMM, and GC remain intentionally deferred.
 
 ---
 
-## 3. Exact Search vs Boundary Search
+### HLD — URL Shortener V1
 
-Distinction consolidated.
+#### Functional requirements identified
 
-Exact binary search:
+* Create a short URL from a long URL.
+* Resolve a short URL and redirect to the original URL.
+* Consider URL lifetime/expiration.
+* Consider domain and allowed short-code characters.
 
-```text
-nums[mid] > target
-→ mid is proven not to be answer
-→ right = mid - 1
-```
+#### Non-functional requirements discussed
 
-Lower bound:
+* High redirect volume.
+* Read-heavy workload.
+* Low redirect latency.
+* High availability.
+* Durable mappings.
+* Globally unique short codes.
 
-```text
-nums[mid] >= target
-→ mid may itself be answer
-→ right = mid
-```
+#### API model
 
-Core transfer:
+Two primary operations:
 
-> Exact search discards `mid` after proving it wrong. Boundary search may need to preserve `mid` after proving it valid.
+1. Create short URL.
+2. Redirect short URL to original URL.
+
+#### Data model
+
+Minimum mapping identified:
+
+* unique ID
+* short code
+* long URL
+* creation metadata
+* optional active/deactivated state
+
+#### Short-code generation
+
+* Initially proposed encryption/random generation plus existence checking.
+
+* Refined to separate:
+
+  * **ID generation** — provides uniqueness.
+  * **Base62 encoding** — provides compact representation.
+
+* Understood Base62 as 62 symbols:
+
+  `0-9 + a-z + A-Z`
+
+* Understood that Base62 does not create uniqueness by itself.
+
+* Discussed database-generated IDs for simple V1.
+
+* Identified collision risk when independent shards generate the same numeric IDs.
+
+* Understood a Snowflake-style structure conceptually:
+
+  `timestamp + machine/shard ID + sequence`
+
+* Correctly identified that machine/shard ID differentiates generators.
+
+* Clarified that sequence synchronization is required only locally within a generator/time bucket, not globally.
+
+#### Redirect/read path
+
+Developed layered read architecture:
+
+`Client -> CDN -> Application -> Redis -> Database`
+
+* CDN can absorb traffic for very hot URLs before requests reach the application.
+* Redis provides low-latency mapping lookup and protects the database.
+* Database remains the source of truth.
+* Cache misses fall through to the next layer.
+* Discussed 301 versus temporary redirect behavior and the caching implications.
+* Recognized that immutable short-code mappings dramatically reduce cache-invalidation complexity.
+
+#### Failure handling
+
+* Correctly identified that Redis failure can push unexpected traffic onto the database.
+* Discussed graceful degradation:
+
+  * Redis fallback to DB.
+  * timeouts.
+  * bounded concurrency.
+  * circuit breakers.
+  * load shedding.
+* Understood that restart is an operational response, not the primary resilience architecture.
+* For simultaneous cache and DB failure, system should fail in a controlled manner rather than allowing cascading resource exhaustion.
+* Recognized CDN as an additional protection layer for hot URLs.
+
+#### Hot-key handling
+
+* Identified CDN + Redis as protection for viral short URLs.
+* Discussed cache-stampede risk when a hot entry expires.
+* Introduced request coalescing/single-flight and sensible TTL/refresh strategies.
+* Rate limiting understood as a protection/load-shedding mechanism rather than the normal solution to legitimate popularity.
+
+#### Partitioning
+
+Considered:
+
+* region-based placement
+* time-based partitioning
+* range partitioning
+* hash-based partitioning
+
+Refinements:
+
+* Region is more appropriate for replication/data placement than as the primary ownership key.
+* Time-based sharding can concentrate writes on the newest shard.
+* Range sharding is simple but may become uneven.
+* Hash-based partitioning generally distributes records more evenly.
+
+Identified the resizing problem with:
+
+`hash(key) % N`
+
+When `N` changes, many existing mappings move to different shards.
+
+Introduced consistent hashing conceptually as a way to reduce data movement when shard membership changes.
+
+#### HLD retrieval
+
+Without looking back, reconstructed:
+
+* creation API
+* redirect API
+* Base62 purpose
+* Redis role
+* CDN role
+* database fallback
+* core redirect path
+
+Minor corrections required:
+
+* persistence should precede treating cache as authoritative.
+* CDN sits before the application.
+* Base62 has 62 symbols, not 61.
+* Short codes do not necessarily need to remain exactly seven characters.
+
+**Current HLD evidence:** URL Shortener V1 fundamentals are understood. User is beginning to reason from NFRs toward caching, failure handling, ID generation, and partitioning rather than only drawing CRUD architecture.
 
 ---
 
-## 4. First and Last Position of Target
+### Production Debugging
 
-Problem:
+Incident characteristics:
 
-```text
-sorted array
-+
-duplicates
-+
-return first and last target indices
-```
+* Traffic approximately unchanged.
+* CPU approximately normal.
+* p50 approximately normal.
+* p99 increased dramatically.
+* Error rate increased slightly.
 
-Initial solution direction:
+Demonstrated reasoning:
 
-```text
-find first index separately
-+
-find last index separately
-```
+* Recognized that normal p50 with severely degraded p99 indicates a minority/tail path is slow rather than the entire service uniformly degrading.
 
-was correct.
+* First useful question identified:
 
-An initial recursive formulation was produced and then simplified into iterative binary searches.
+  **Which endpoint/API is contributing to the p99 increase?**
 
-### First occurrence
+* Considered Redis/cache degradation as a hypothesis.
 
-Normal binary-search comparison behavior remains unchanged:
+* Understood that a Redis restart/cold cache could cause DB load amplification.
 
-```text
-nums[mid] < target
-→ left = mid + 1
+* Improved reasoning from "guess likely dependency" toward:
 
-nums[mid] > target
-→ right = mid - 1
-```
+  * isolate endpoint
+  * isolate downstream dependency/span
+  * verify Redis hit rate/latency
+  * verify DB QPS/latency/connection-pool behavior
+  * isolate query
+  * inspect execution plan
+  * identify recent changes
 
-Equality changes:
+* Correctly recognized that an overall DB p99 increase may originate from only one API/query.
 
-```text
-nums[mid] == target
-→ remember mid
-→ continue searching left
-→ right = mid - 1
-```
+* For a slow search query, initially proposed replacing SQL with Solr/search infrastructure.
 
-Invariant-like reasoning:
+* Refined debugging discipline:
 
-> The remembered index is the earliest matching index found so far; if a better answer exists, it must be to the left.
+  * inspect the existing SQL/query plan first
+  * determine why the regression occurred
+  * redesign only if the workload fundamentally requires a search engine
 
-### Last occurrence
+* Discussed causes for an index no longer being used:
 
-Equality:
+  * index removed/changed
+  * query shape changed
+  * functions/casts applied to indexed columns
+  * composite-index mismatch
+  * stale/changing statistics
+  * changed selectivity/data distribution
 
-```text
-nums[mid] == target
-→ remember mid
-→ continue searching right
-→ left = mid + 1
-```
+* Understood that:
 
-Reasoning:
+  * an index existing does not guarantee that the optimizer will use it
+  * optimizer/query hints are database-specific
+  * forcing an index should not be the first response
 
-> The remembered index is the latest matching index found so far; if a better answer exists, it must be to the right.
+* Retrieval check:
 
-Complexity:
+  * Correctly started by segmenting p99 by endpoint.
+  * Still has a tendency to jump from a plausible hypothesis directly to a presumed root cause.
+  * Needs continued practice explicitly validating hypotheses with metrics/traces before declaring causality.
 
-```text
-Time  = O(log n)
-Space = O(1)
-```
-
-for the iterative implementation.
+**Current debugging evidence:** Strong instinct for likely bottlenecks and useful first segmentation. Primary improvement area is disciplined evidence-driven narrowing before proposing fixes.
 
 ---
 
-## 5. Boundary-Abstraction Learning Note
+### Rate Limiter — Day 11 Closure
 
-The initial:
+Conceptual test cases demonstrated:
 
-```text
-false false false true true
-```
+* First request accepted.
+* Requests up to threshold accepted.
+* Threshold + 1 rejected.
+* Rejected requests must not increment the accepted-request count.
+* Exact fixed-window boundary resets the effective count.
+* Per-user isolation understood.
+* Recognized that the rate-limit key may instead be tenant/org scoped depending on business requirements.
+* Invalid configuration such as non-positive limit/window size should fail fast.
 
-predicate framing created unnecessary cognitive overhead during first/last-occurrence derivation.
-
-Concrete reasoning proved more effective:
-
-```text
-found target
-+
-first occurrence?
-→ remember candidate and continue left
-
-last occurrence?
-→ remember candidate and continue right
-```
-
-After the concrete algorithm was understood, the equivalent boundary interpretation became clearer.
-
-Important coaching rule going forward:
-
-> For DSA, derive the concrete safe-elimination behavior first. Introduce monotonic-predicate terminology only when it improves the reasoning rather than obscuring it.
+**Important evidence limitation:** Automated rate-limiter test code/results were not demonstrated during this session. Do not record the implementation test suite as passing until test output or equivalent evidence is shown.
 
 ---
 
-## 6. Count Occurrences in Sorted Array
+## Day 11 Overall Assessment
 
-Derived from previously solved boundaries:
+### Demonstrated strengths
 
-```text
-count
-=
-lastIndex - firstIndex + 1
-```
+* Stronger ability to derive solutions through invariants rather than only memorize patterns.
+* Good system-design instincts around caching, high-read workloads, hot keys, failure chains, and sharding concerns.
+* Core virtual-memory model is now coherent across JVM heap, virtual memory, pages, frames, RAM, and CPU cache.
+* Production-debugging instincts are strong at identifying plausible bottlenecks and segmenting problems.
 
-If:
+### Current improvement areas
 
-```text
-firstIndex == -1
-```
+1. **DSA precision**
 
-return:
+   * Preserve the exact invariant/equation when explaining a derived solution.
+   * Re-test prefix-sum transfer after several days on a different problem.
 
-```text
-0
-```
+2. **HLD discipline**
 
-Example:
+   * Continue separating functional requirements, NFRs, data constraints, and architecture decisions.
+   * Avoid prematurely choosing technology before isolating the requirement that necessitates it.
 
-```text
-[1,2,2,2,3,4], target = 2
+3. **Production debugging**
 
-first = 1
-last  = 3
+   * Do not convert a plausible hypothesis into a root cause without evidence.
+   * Explicitly state the metric/trace/log/query-plan evidence that would confirm or reject each hypothesis.
 
-count = 3
-```
+4. **Memory arithmetic**
 
-Important simplification identified:
+   * Improve fluency with page number and offset calculations.
 
-The first version performed an additional midpoint-based narrowing in the caller before invoking the first/last helpers.
+### Deferred intentionally
 
-This was logically valid but redundant.
+* Trees / heaps
+* Graphs
+* Binary search on answer
+* Rotated-array binary-search variants
+* Rolling-window rate limiter
+* Token bucket
+* Redis/distributed rate limiter
+* Java Memory Model
+* Garbage-collection deep dive
+* TLB internals
+* Page-replacement algorithms
+* Multi-region URL Shortener
+* Distributed ID-generation deep dive
+* URL analytics pipeline
 
-Cleaner composition:
+### Phase readiness
 
-```text
-findFirst()
-↓
-absent? → 0
-↓
-findLast()
-↓
-last - first + 1
-```
+Day 11 is complete, but **Phase 2 readiness should not be declared solely from day completion**.
 
-Engineering lesson:
+Recommended evidence before phase advancement:
 
-> If a helper completely owns an operation, avoid partially reimplementing that operation in the caller.
-
-Complexity:
-
-```text
-O(log n)
-```
-
-because matching duplicates are never enumerated.
-
----
-
-## 7. Search Insert Position
-
-Correctly recognized as the same problem as lower bound:
-
-```text
-first index where nums[i] >= target
-```
-
-Implementation reproduced correctly using:
-
-```java
-left = 0;
-right = numbers.length;
-
-while (left < right) {
-    int mid = left + (right - left) / 2;
-
-    if (numbers[mid] >= target) {
-        right = mid;
-    } else {
-        left = mid + 1;
-    }
-}
-```
-
-Correctly handles:
-
-```text
-target present
-target between elements
-target before all elements
-target after all elements
-empty array
-```
-
-No special empty-array branch is required.
-
----
-
-## 8. First Bad Version
-
-Binary search successfully transferred away from arrays.
-
-Search space:
-
-```text
-versions 1 ... n
-```
-
-Provided API:
-
-```java
-boolean isBad(int version)
-```
-
-Contract:
-
-```text
-once a version becomes bad,
-all later versions are also bad
-```
-
-Example:
-
-```text
-F F F T T T T
-      ^
-   first bad
-```
-
-Derived:
-
-```text
-isBad(mid) == true
-→ mid may be first bad
-→ preserve mid
-→ right = mid
-```
-
-```text
-isBad(mid) == false
-→ mid and everything before it are good
-→ left = mid + 1
-```
-
-Implementation produced correctly.
-
-Key transfer:
-
-> Binary search fundamentally requires an ordered candidate space, a monotonic decision property, and safe elimination. It does not fundamentally require an array.
-
-Complexity:
-
-```text
-O(log n)
-```
-
-API calls.
-
----
-
-# Java Memory Foundations
-
-## 9. Primitive vs Reference
-
-Primitive:
-
-```java
-int x = 42;
-```
-
-Mental model:
-
-```text
-x contains primitive value 42
-```
-
-Reference:
-
-```java
-Person p = new Person();
-```
-
-Mental model:
-
-```text
-p
-→ reference
-
-Person object
-→ separate heap-managed object
-```
-
-Important statement:
-
-> A reference is not the object.
-
----
-
-## 10. Aliasing
-
-Example:
-
-```java
-Person a = new Person();
-Person b = a;
-```
-
-Correctly identified:
-
-```text
-1 Person object
-2 reference variables
-```
-
-Both:
-
-```text
-a
-b
-```
-
-refer to the same object.
-
-Therefore:
-
-```java
-b.name = "TG";
-```
-
-is visible through:
-
-```java
-a.name
-```
-
-because the shared object was mutated.
-
----
-
-## 11. Reference Reassignment
-
-Example:
-
-```java
-Person a = new Person("A");
-Person b = a;
-
-b = new Person("B");
-```
-
-Correctly reasoned:
-
-```text
-a → Person("A")
-b → Person("B")
-```
-
-There are now:
-
-```text
-2 objects
-2 references
-```
-
-Key distinction:
-
-```text
-b.name = ...
-→ mutate referenced object
-
-b = new Person(...)
-→ reassign reference
-```
-
----
-
-## 12. Stack Frames vs Heap Objects
-
-For:
-
-```java
-void process(Person p, int count) {
-    int local = count + 1;
-}
-```
-
-conceptual stack frame contains:
-
-```text
-reference p
-primitive count
-primitive local
-execution/bookkeeping state
-```
-
-The `Person` object itself is separate.
-
-Important refinement:
-
-> References are not universally "on the stack."
-
-A local reference may conceptually reside in a stack frame.
-
-A reference field inside another heap object is stored as part of that object.
-
----
-
-## 13. Primitive Arrays vs Reference Arrays
-
-Primitive:
-
-```java
-int[] numbers = new int[3];
-```
-
-contains:
-
-```text
-[0 | 0 | 0]
-```
-
-Reference array:
-
-```java
-Person[] people = new Person[3];
-```
-
-contains:
-
-```text
-[null | null | null]
-```
-
-Important statement consolidated:
-
-> `new Person[3]` creates one array object containing three reference slots. It does not create three Person objects.
-
-After:
-
-```java
-people[0] = new Person("A");
-people[1] = new Person("B");
-```
-
-conceptually:
-
-```text
-people array
-[refA | refB | null]
-   ↓      ↓
-   A      B
-```
-
-Total heap-managed objects in this example:
-
-```text
-1 array
-+
-2 Person objects
-=
-3 objects
-```
-
----
-
-# Object Layout
-
-## 14. Object Fields Are Stored Inline
-
-Example:
-
-```java
-class Person {
-    int age;
-    int id;
-    String name;
-}
-```
-
-Conceptual object layout:
-
-```text
-object header
-int age
-int id
-reference name
-possible padding
-```
-
-Primitive fields:
-
-```text
-age
-id
-```
-
-are stored inline as part of the object's memory representation.
-
-The reference field:
-
-```text
-name
-```
-
-is also stored inline, but it contains only a reference.
-
-The actual `String` object is separate.
-
-Therefore:
-
-```text
-person.age
-```
-
-does not require following another Java object reference.
-
-But:
-
-```text
-person.name
-```
-
-requires:
-
-```text
-read reference from Person object
-↓
-follow reference
-↓
-access String object
-```
-
-This may involve additional pointer chasing/cache behavior.
-
----
-
-## 15. Object Header Mental Model
-
-Traditional HotSpot object-header concepts introduced:
-
-```text
-Mark Word
-+
-class/Klass information
-```
-
-Object header contains JVM runtime metadata rather than application-domain fields.
-
-### Mark Word
-
-Conceptually associated with runtime information such as:
-
-```text
-locking/synchronization state
-identity-hash information
-GC age
-runtime/status bits
-```
-
-GC age was understood as conceptually tracking object survival across young-generation collection activity.
-
-### Class / Klass Information
-
-Allows the JVM to identify:
-
-```text
-what runtime class is this object?
-```
-
-and reason about:
-
-```text
-field layout
-type checks
-runtime dispatch
-GC reference layout
-```
-
-Important precision:
-
-> Do not memorize exact header bit layouts because HotSpot implementation details vary by JDK/configuration.
-
----
-
-## 16. Padding / Alignment
-
-Padding clarified as:
-
-> Unused bytes inserted to satisfy memory-layout/alignment requirements.
-
-Padding is not:
-
-```text
-additional Mark Word space
-```
-
-and is not application data.
-
-Conceptual total object size:
-
-```text
-object header
-+
-instance primitive fields
-+
-instance reference fields
-+
-alignment/padding
-```
-
-Exact byte counts are JVM/configuration dependent.
-
----
-
-## 17. 64-bit HotSpot / Compressed References — Introduction
-
-Introduced conceptually:
-
-```text
-64-bit JVM/process
-```
-
-does not imply:
-
-```text
-every Java reference must physically consume 8 bytes
-```
-
-HotSpot can use compressed object references.
-
-Directional understanding:
-
-```text
-smaller references
-→ lower memory footprint
-→ potentially better cache density
-```
-
-Exact implementation details deliberately remain JVM-internals material and should not become memorization burden during Phase 1.
-
----
-
-# JVM Heap vs CPU Cache
-
-## 18. Separate Abstraction Layers
-
-JVM-level concepts:
-
-```text
-heap
-stack frames
-objects
-references
-arrays
-```
-
-Hardware-level concepts:
-
-```text
-CPU registers
-L1/L2/L3 cache
-cache lines
-RAM
-```
-
-Important correction:
-
-Do not say:
-
-```text
-stack = CPU cache
-heap = RAM
-```
-
-A logically heap-resident Java object's bytes may currently be present in CPU cache.
-
----
-
-## 19. Primitive Array Locality
-
-Primitive arrays:
-
-```text
-contiguous primitive payload
-```
-
-provide strong spatial locality.
-
-Reading one part of an array may cause nearby data to enter the same or nearby cache lines.
-
-Therefore sequential traversal can benefit from:
-
-```text
-cache-line reuse
-hardware prefetch
-spatial locality
-```
-
----
-
-## 20. Reference Array Locality
-
-For:
-
-```java
-Person[] people;
-```
-
-the array stores contiguous:
-
-```text
-references
-```
-
-Therefore iterating over the reference slots has good locality.
-
-However:
-
-```text
-people[0] → Person object A
-people[1] → Person object B
-people[2] → Person object C
-```
-
-the actual Person objects may reside in unrelated heap locations.
-
-Therefore:
-
-> An array of object references gives spatial locality for the reference array itself, but not necessarily for the referenced objects.
-
-Following the references may still create pointer chasing/cache misses.
-
----
-
-## 21. Object Field Locality
-
-Within a single object:
-
-```text
-header
-+
-inline fields
-```
-
-form one object layout.
-
-Therefore accessing nearby primitive fields may benefit from locality if the relevant object data is already cache-resident.
-
-Reference fields differ because the referenced object's data is elsewhere.
-
-This creates the conceptual access chain:
-
-```text
-load containing object
-↓
-read reference field
-↓
-dereference another object
-↓
-potential additional cache access/miss
-```
-
----
-
-# Rate Limiter V1 — Fixed Window
-
-## 22. Requirement Clarification
-
-Day 10 implementation selected:
-
-```text
-Fixed Window
-```
-
-not:
-
-```text
-Rolling Window
-Token Bucket
-```
-
-Fixed-window semantics:
-
-```text
-12:00:00–12:00:59
-12:01:00–12:01:59
-12:02:00–12:02:59
-```
-
-Each customer receives a fresh allowance in every predefined window.
-
-Example:
-
-```text
-limit = 100/minute
-
-100 requests at 12:00:59
-+
-100 requests at 12:01:01
-```
-
-may both be valid under fixed-window semantics.
-
-This is a:
-
-```text
-boundary burst
-```
-
-and is a policy consequence, not necessarily an implementation bug.
-
----
-
-## 23. Window Identity
-
-Unix epoch seconds introduced:
-
-```java
-Instant.now().getEpochSecond()
-```
-
-Conceptually:
-
-> Number of whole seconds since 1970-01-01T00:00:00Z.
-
-Fixed-window identity:
-
-```java
-windowId = epochSeconds / windowSizeSeconds;
-```
-
-For:
-
-```text
-windowSize = 60 seconds
-```
-
-all timestamps in the same 60-second bucket produce the same logical `windowId`.
-
-Important naming improvement:
-
-Do not call:
-
-```java
-Instant.now().getEpochSecond() / 60
-```
-
-`epochSeconds`.
-
-It is now:
-
-```text
-windowId
-```
-
----
-
-## 24. Initial Rate-Limiter State Model
-
-Initial implementation used:
-
-```java
-HashMap<String, HashMap<Long, Integer>>
-```
-
-conceptually:
-
-```text
-user
-→ timestamp/window
-→ count
-```
-
-This retained historical buckets and was more state than fixed-window semantics require.
-
-Key abstraction correction:
-
-> Fixed window does not require storing every request or every historical bucket.
-
-Only the customer's current fixed-window state matters.
-
----
-
-## 25. Minimal Fixed-Window State
-
-State model simplified to:
-
-```java
-Map<String, WindowState>
-```
-
-where:
-
-```text
-WindowState
-├── windowId
-└── requestProcessedCount
-```
-
-Conceptually:
-
-```text
-abc → {windowId=12345, count=7}
-def → {windowId=12345, count=2}
-ghi → {windowId=12346, count=1}
-```
-
-Important insight:
-
-> The map is per user; the value object contains that user's current fixed-window state.
-
-No nested map is required.
-
----
-
-## 26. Fixed-Window Decision Flow
-
-For every request:
-
-```text
-compute currentWindowId
-↓
-lookup user
-```
-
-### New user
-
-```text
-create WindowState
-windowId = currentWindowId
-count = 1
-allow
-```
-
-### Existing user — same window
-
-```text
-count >= threshold
-→ reject
-
-count < threshold
-→ count++
-→ allow
-```
-
-### Existing user — new window
-
-```text
-windowId = currentWindowId
-count = 1
-allow
-```
-
-No global/background "reset every minute" mechanism is required.
-
-Reset happens lazily when that customer's next request enters a different window.
-
----
-
-## 27. Rate-Limit Off-by-One Bug
-
-Initial implementation checked:
-
-```java
-if (totalRequests > threshold)
-```
-
-which allows:
-
-```text
-threshold + 1
-```
-
-requests.
-
-Correct condition:
-
-```java
-if (count >= threshold)
-```
-
-before accepting the next request.
-
-This prevents accepted count from exceeding the configured limit.
-
----
-
-## 28. Fixed-Window Invariant
-
-Current invariant:
-
-> For each customer's current fixed window, `requestProcessedCount` equals the number of accepted requests represented by that state and never exceeds the configured threshold.
-
-Rejected requests must not increment the accepted count.
-
----
-
-# Rate Limiter LLD Structure
-
-## 29. RateLimiter Abstraction
-
-Created:
-
-```java
-interface RateLimiter
-```
-
-with current conceptual API:
-
-```java
-boolean shouldProcessRequest(String user);
-```
-
-Request payload was removed from the rate-limiter API because the current policy does not use request contents.
-
-Future policies may evolve identity/scope requirements separately.
-
----
-
-## 30. FixedRateLimiter
-
-Implemented a single-node:
-
-```java
-FixedRateLimiter
-```
-
-using:
-
-```java
-HashMap<String, WindowState>
-```
-
-Current implementation behavior is correct for the intended:
-
-```text
-single-threaded
-single-process
-fixed one-minute window
-```
-
-learning model.
-
-Potential naming improvement:
-
-```text
-FixedWindowRateLimiter
-```
-
-is more precise than:
-
-```text
-FixedRateLimiter
-```
-
-because "fixed" describes the time-window algorithm.
-
----
-
-## 31. RateLimiterFactory
-
-A factory was introduced to create limiter implementations.
-
-Current selection resembles:
-
-```java
-RateLimiterFactory.getRateLimiter(
-    "FixedRateLimiter",
-    limit
-)
-```
-
-Current implementation works as an extensibility exercise.
-
-Future cleanup:
-
-```text
-raw String policy selector
-→ enum/configuration/policy object
-```
-
-and:
-
-```text
-unknown limiter
-→ throw explicit exception
-```
-
-rather than returning:
-
-```text
-null
-```
-
-Do not over-engineer this yet.
-
----
-
-## 32. Dependency Injection / Application Ownership
-
-Initial application created its own limiter internally:
-
-```text
-RateLimiterApplication
-→ calls RateLimiterFactory itself
-```
-
-Refactored to constructor injection:
-
-```java
-RateLimiterApplication(RateLimiter rateLimiter) {
-    this.rateLimiter = rateLimiter;
-}
-```
-
-Bootstrap/main now decides which implementation to create:
-
-```text
-main/configuration
-↓
-factory creates RateLimiter
-↓
-RateLimiter injected into application
-```
-
-Important design principle:
-
-> The component using a dependency should not necessarily also own the dependency's construction/configuration.
-
-`RateLimiterApplication` now depends only on:
-
-```java
-RateLimiter
-```
-
-and does not need to understand:
-
-```text
-Fixed Window
-Token Bucket
-factory selection
-threshold construction
-```
-
-Runtime mutation/setters were deliberately avoided for V1.
-
-If rate-limit algorithms must truly change dynamically later, state migration and configuration semantics should be designed explicitly rather than introducing an ad-hoc setter.
-
----
-
-# Rate Limiter HLD Bridge
-
-## 33. Local vs Global Rate Limiting
-
-Current implementation stores state in:
-
-```text
-in-process HashMap
-```
-
-Therefore each application instance has independent state.
-
-Suppose:
-
-```text
-3 service instances
-limit = 100/customer/minute
-```
-
-Each instance could independently accept:
-
-```text
-instance A → 100
-instance B → 100
-instance C → 100
-```
-
-Potential global acceptance:
-
-```text
-300
-```
-
-Therefore:
-
-> Correct local enforcement does not imply correct global enforcement.
-
-This limitation was identified correctly.
-
----
-
-## 34. Distributed Direction — Deferred
-
-A distributed system needs some mechanism for coordinating rate-limit state.
-
-Possible future directions include:
-
-```text
-shared centralized state
-Redis-style atomic operations
-gateway-level enforcement
-partitioned/distributed enforcement
-```
-
-These were recognized conceptually but not designed/implemented on Day 10.
-
-Do not prematurely jump into:
-
-```text
-Redis Lua
-distributed locking
-consensus
-```
-
-until the distributed Rate Limiter/HLD curriculum explicitly reaches that stage.
-
----
-
-# Rate Limiter Production Concerns
-
-## 35. Fixed-Window Boundary Burst
-
-Fixed-window semantics allow traffic concentration around boundaries.
-
-Example:
-
-```text
-limit = 100/min
-
-100 requests just before boundary
-+
-100 requests immediately after boundary
-```
-
-can produce approximately:
-
-```text
-200 requests in a very short real-time interval
-```
-
-while still satisfying each fixed bucket independently.
-
-This is a semantic limitation of Fixed Window.
-
----
-
-## 36. State Growth
-
-Current:
-
-```java
-Map<String, WindowState>
-```
-
-retains one state entry for every customer that has ever been observed.
-
-If customer cardinality continually grows:
-
-```text
-map size ↑
-heap usage ↑
-GC activity ↑
-```
-
-Old/stale users eventually need a cleanup/expiry strategy in a production implementation.
-
-This remains intentionally unimplemented in V1.
-
----
-
-## 37. Time Dependency / Testability
-
-Current implementation internally uses:
-
-```java
-Instant.now()
-```
-
-This works for a demonstration but makes exact window-boundary tests harder.
-
-Preferred testable design:
-
-```java
-boolean allow(String customerId, Instant now)
-```
-
-or inject a:
-
-```java
-Clock
-```
-
-later.
-
-Reason:
-
-```text
-deterministic tests
-```
-
-Example tests should be able to explicitly exercise:
-
-```text
-t = 59 sec
-t = 60 sec
-```
-
-without sleeping.
-
-Carry forward as implementation-quality improvement.
-
----
-
-# Day 10 — Tests / Engineering Evidence Pending
-
-## 38. Fixed-Window Rate Limiter Tests
-
-Implementation was manually smoke-tested through `RateLimiterApplication`.
-
-Formal unit tests remain pending.
-
-Required regression tests:
-
-```text
-1. first request allowed
-
-2. requests up to threshold allowed
-
-3. threshold + 1 request rejected
-
-4. rejected request does not increase count
-
-5. next fixed window resets allowance
-
-6. per-user isolation
-
-7. exact window-boundary behavior
-
-8. multiple windows
-
-9. null/invalid user behavior
-
-10. invalid limit configuration
-```
-
-Testability improvement needed before exact boundary tests:
-
-```text
-control time explicitly
-```
-
-rather than relying entirely on:
-
-```java
-Instant.now()
-```
-
-Carry these tests into the next engineering-quality warm-up rather than re-teaching Fixed Window.
-
----
-
-# Day 10 — Strong Areas
-
-## 39. DSA
-
-Improved substantially:
-
-```text
-exact binary search
-first occurrence
-last occurrence
-count occurrences
-Search Insert Position / lower bound
-First Bad Version
-safe elimination
-candidate preservation
-```
-
-First/last occurrence was solved independently after an initial recursive formulation and simplified into a clean iterative solution.
-
-Binary search successfully transferred from:
-
-```text
-array-value comparison
-```
-
-to:
-
-```text
-boolean monotonic API
-```
-
-through First Bad Version.
-
----
-
-## 40. Java / JVM
-
-Strong conceptual understanding established for:
-
-```text
-primitive vs reference
-aliasing
-reference reassignment
-stack frame vs heap object
-primitive arrays
-reference arrays
-inline primitive fields
-reference fields
-object headers
-Mark Word
-class/Klass information
-padding/alignment
-pointer chasing
-cache locality
-```
-
-The user actively asked implementation-level JVM questions and connected object/reference layout to CPU-cache behavior.
-
-Do not re-teach these foundations from scratch.
-
-Use retrieval and later deepen them during dedicated JVM/GC sessions.
-
----
-
-## 41. LLD
-
-Good improvement in reducing unnecessary state.
-
-Rate Limiter evolution:
-
-```text
-nested historical map
-↓
-identify actual policy requirement
-↓
-one WindowState per customer
-```
-
-This demonstrated the abstraction goal:
-
-> Store the minimum state required to answer the decision.
-
-Constructor injection was also adopted after discussing dependency ownership.
-
----
-
-# Day 10 — Active Gaps / Corrections
-
-Continue reinforcing:
-
-```text
-1. Binary-search boundary abstraction should follow concrete reasoning rather than precede it when terminology becomes distracting.
-
-2. Keep index and value terminology precise:
-   lower bound returns an index, not the target value.
-
-3. Avoid redundant work in DSA callers once helpers already completely own the search operation.
-
-4. State invariants as properties rather than procedural boundary updates.
-
-5. FixedWindowRateLimiter needs deterministic unit tests.
-
-6. Time should eventually be injectable/controllable rather than hard-coded through Instant.now().
-
-7. Current Rate Limiter implementation is single-threaded only.
-   HashMap + mutable WindowState is not thread-safe.
-
-8. Rate-limiter stale-user state cleanup remains unresolved.
-
-9. Local in-memory rate limiting does not provide a distributed/global guarantee.
-
-10. Factory string-based selection is acceptable for the exercise but should eventually become typed/config-driven.
-```
-
----
-
-# Deferred / Do Not Re-Teach Yet
-
-Do not restart from scratch:
-
-```text
-LRU Cache
-basic exact binary search
-first/last occurrence
-count occurrences
-Search Insert Position
-First Bad Version
-primitive/reference basics
-aliasing
-stack vs heap basics
-primitive vs reference arrays
-basic object-header concept
-fixed-window semantics
-basic local-vs-global Rate Limiter limitation
-```
-
-Use retrieval instead.
-
----
-
-# Explicit Carry-Forward Items
-
-## Immediate
-
-```text
-1. Add deterministic tests for FixedWindowRateLimiter.
-
-2. Refactor time dependency when tests require exact window control.
-
-3. Preserve single-node V1; do not over-engineer distributed enforcement prematurely.
-```
-
-## Java / JVM Later
-
-Deepen during dedicated JVM sessions:
-
-```text
-GC roots
-young/old generations
-allocation paths
-TLAB
-minor/major/full GC terminology
-promotion
-collectors
-escape analysis
-JIT
-compressed oops/class pointers
-Metaspace
-actual object layout inspection with JOL
-```
-
-Day 10 introduced supporting concepts but did not replace the dedicated JVM/GC curriculum.
-
-## Rate Limiter Later
-
-Future HLD progression should cover:
-
-```text
-centralized/shared state
-atomicity
-concurrent requests
-Redis-style counters
-TTL/state cleanup
-clock semantics
-failure modes
-hot keys
-partitioning
-fixed-window vs sliding-window vs token-bucket trade-offs
-gateway vs application-layer enforcement
-global vs regional limits
-```
-
----
-
-# Interview Readiness Signal After Day 10
-
-Current trend:
-
-```text
-DSA mechanics:
-improving
-
-binary-search transfer:
-good progress
-
-boundary terminology:
-still becoming natural
-
-Java memory fundamentals:
-strong conceptual progress
-
-LLD state modeling:
-improving
-
-Rate Limiter V1:
-conceptually implemented
-
-engineering evidence:
-tests still required
-
-distributed/HLD depth:
-next-stage work
-```
-
-Important observation:
-
-> When reasoning remains concrete and centered on what information is actually necessary, solutions become significantly simpler.
-
-Day 10 examples:
-
-```text
-Count Occurrences
-→ compose first + last instead of adding another search layer
-
-Fixed Window
-→ user → WindowState instead of user → map of historical windows
-
-RateLimiterApplication
-→ depend on RateLimiter rather than constructing policy internally
-```
-
-Continue reinforcing:
-
-```text
-requirement
-↓
-minimum information needed
-↓
-state representation
-↓
-invariant
-↓
-implementation
-↓
-tests
-```
-
----
-
-# Next-Day Starting Point
-
-Do not regenerate Day 11 blindly.
-
-Generate Day 11 using:
-
-```text
-MASTER_CURRICULUM.md
-+
-this registry
-+
-Day 10 evidence
-```
-
-Day 11 should:
-
-```text
-briefly close FixedWindowRateLimiter tests
-+
-continue the planned curriculum progression
-+
-increase HLD depth according to MASTER_CURRICULUM
-```
-
-without spending another full session re-deriving Day 10 material.
+* Successful spaced retrieval of prefix-sum/frequency-map reasoning on a different problem.
+* Automated Fixed-Window Rate Limiter tests demonstrated.
+* At least one additional HLD problem derived with materially less prompting.
+* Continued evidence-driven production-debugging exercise where hypotheses are validated before fixes are proposed.
