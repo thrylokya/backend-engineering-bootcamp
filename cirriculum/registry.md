@@ -1,566 +1,420 @@
-# Day 14 — BST Correctness, Deletion, BFS & Job Scheduler HLD Bridge
+# Day 15 — AVL Balancing, Rotations & Full Job Scheduler HLD
 
 ## Status
 
-**Completed with one parked implementation item**
+**Completed conceptually with AVL implementation intentionally not over-invested**
 
-BST deletion reasoning was covered, but the full deletion implementation/tests were intentionally parked after the concept became low-value friction. Revisit later during the next tree pass.
+Day 15 closed the parked BST deletion implementation, established the AVL balancing model and rotation intuition, and completed the one-time Job Scheduler HLD with failure handling, retries, cancellation, idempotency, leases, fencing, observability, and production-debugging reasoning.
+
+The AVL section was deliberately kept to interview-relevant depth. Full AVL insertion implementation and exhaustive rotation tests were not completed and are not blocking curriculum progress.
 
 ## Phase
 
 Phase 2 — Trees, Heaps, Graphs, Collections & JVM Execution
 
-## Session 1 — Retrieval
-
-**Skipped intentionally.**
-
-Reason:
-
-* Day 13 had just been completed immediately before starting Day 14.
-* No additional traversal/BST refresher was needed.
-
 ---
 
-## Validate Binary Search Tree
+## BST Deletion Maintenance
 
-### Global BST Invariant
+### Recursive Contract
 
-Correctly identified that BST validity is **global**, not just a parent-child check.
-
-Example understood:
-
-```text
-        10
-       /  \
-      5    15
-          /  \
-         6    20
-```
-
-Even though:
-
-```text
-6 < 15
-```
-
-the tree is invalid because `6` is inside the right subtree of `10`, therefore it must also satisfy:
-
-```text
-6 > 10
-```
-
-### Abstraction Derived
-
-Initially reasoned in terms of ancestor/root relationships and path combinations such as:
-
-```text
-left-left
-left-right
-right-left
-right-right
-```
-
-Progressed to the smaller sufficient state:
-
-```text
-lowerBound
-upperBound
-```
-
-Core invariant understood:
-
-```text
-lowerBound < node.value < upperBound
-```
-
-Propagation rule:
-
-```text
-left  → (lowerBound, node.value)
-right → (node.value, upperBound)
-```
-
-Important correction reinforced:
-
-```text
-going left  → keep lower, tighten upper
-going right → tighten lower, keep upper
-```
-
-### Base Case
-
-Corrected initial misconception that:
-
-```text
-null → false
-```
-
-Final understanding:
-
-```text
-null → true
-```
-
-because an empty subtree contains no node that can violate the BST invariant.
-
-### Boundary Type
-
-Recognized that using:
+The deletion contract was clarified and locked in:
 
 ```java
-Integer.MIN_VALUE
-Integer.MAX_VALUE
+Node delete(Node root, int value)
 ```
 
-as strict bounds can incorrectly reject valid nodes containing those exact values.
-
-Used wider bounds:
-
-```java
-Long.MIN_VALUE
-Long.MAX_VALUE
-```
-
-for an `int`-valued BST.
-
-### Implementation
-
-Implemented bounds-based validation.
-
-Final corrected form:
-
-```java
-public boolean isValidBST(Node root) {
-    return isValidBST(root, Long.MIN_VALUE, Long.MAX_VALUE);
-}
-
-private boolean isValidBST(Node root, long leftBound, long rightBound) {
-    if (root == null) {
-        return true;
-    }
-
-    if (root.value <= leftBound || root.value >= rightBound) {
-        return false;
-    }
-
-    return isValidBST(root.left, leftBound, root.value)
-        && isValidBST(root.right, root.value, rightBound);
-}
-```
-
-### Bugs / Corrections Encountered
-
-Initial implementation checked only immediate children:
-
-```java
-root.left.value > root.value
-root.right.value < root.value
-```
-
-This failed to enforce ancestor constraints.
-
-Second implementation initially used:
-
-```java
-root.value < leftBound || root.value > rightBound
-```
-
-which allowed duplicate values on a boundary.
-
-Corrected to:
-
-```java
-root.value <= leftBound || root.value >= rightBound
-```
-
-under the no-duplicates policy.
-
-### Complexity
-
-Correctly reasoned:
-
-```text
-Time  → O(n)
-Space → O(h)
-```
-
-Reasoning:
-
-* every node is visited once
-* constant work is performed per node
-* recursive stack depth is bounded by tree height
-
-Balanced tree:
-
-```text
-O(log n) stack
-```
-
-Skewed tree:
-
-```text
-O(n) stack
-```
-
-Important precision retained:
-
-```text
-h is not automatically O(log n)
-```
-
----
-
-## BST Deletion
-
-### Case Model
-
-Correctly converged on the standard deletion cases:
-
-```text
-0 children → remove leaf
-1 child    → promote the only child
-2 children → replace using predecessor/successor
-```
-
-Important correction:
-
-* deleting the root is not a separate structural case
-* the root can itself have 0, 1, or 2 children
-
-### Two-Child Replacement
-
-Correctly derived both valid choices:
-
-```text
-inorder predecessor
-→ maximum value in left subtree
-→ rightmost node of left subtree
-```
-
-and:
-
-```text
-inorder successor
-→ minimum value in right subtree
-→ leftmost node of right subtree
-```
-
-Day 14 standard:
-
-```text
-use inorder successor
-```
-
-Correctly explained why the successor preserves the BST invariant.
-
-### Successor Detail
-
-Important subtlety covered:
-
-> The inorder successor is not guaranteed to be a leaf.
-
-It may have a right child.
-
-Therefore removing the successor from its original location must reconnect that right child if present.
-
-### Recursive-Return Contract
-
-Discussed:
-
-```java
-Node delete(Node node, int value)
-```
-
-with the contract:
+means:
 
 > Return the root of this subtree after deletion.
 
-The recursive formulation was explained, including:
+Important distinction:
+
+```text
+return value != deleted node
+return value != "replacement value"
+
+return value = new root of the affected subtree
+```
+
+This explains why recursive reassignment is required:
 
 ```java
-node.left = delete(node.left, value);
-node.right = delete(node.right, value);
+root.left = delete(root.left, value);
+root.right = delete(root.right, value);
 ```
 
-However, this abstraction caused unnecessary friction during the session.
-
-### Preferred Mental Model During Session
-
-User reasoned more naturally using explicit parent references:
+The recursive call may return:
 
 ```text
-find target + parent
-
-0 children:
-    disconnect target from parent
-
-1 child:
-    point parent directly to target's child
-
-2 children:
-    find successor + successorParent
-    copy successor value into target
-    reconnect successorParent to successor.right
+same subtree root
+different subtree root
+null
 ```
 
-This iterative/parent-based approach was accepted as a valid implementation strategy.
+and the parent reconnects to that returned root.
 
-### Implementation Status
-
-**Parked / incomplete**
-
-An initial implementation was attempted but did not correctly:
-
-* disconnect leaf nodes from their parents
-* handle one-child promotion
-* remove the original successor after copying its value
-* maintain the required subtree-root contract
-
-Rather than over-invest time, implementation was intentionally deferred.
-
-### Revisit Requirement
-
-On the next tree revision pass, implement and test:
-
-```text
-delete missing value
-delete leaf
-delete one-child node
-delete two-child node
-delete root
-delete until empty
-size correctness
-contains(deleted) == false
-inorder remains sorted
-isValidBST(root) == true after each mutation
-```
-
----
-
-## BFS / Level-Order Traversal
-
-### Queue Derivation
-
-Correctly derived FIFO from first principles.
-
-Reasoning:
-
-```text
-first discovered
-→ first processed
-```
-
-Therefore:
-
-```text
-FIFO
-→ Queue
-```
-
-No memorized dependency on "BFS uses queue" was needed.
-
-### Flat BFS Implementation
-
-Implemented:
+### Implementation Demonstrated
 
 ```java
-private void printBFS(Node root) {
-    Node node = root;
-    Queue<Node> bfsQueue = new ArrayDeque<Node>();
-    bfsQueue.offer(node);
+public Node delete(Node root, int value){
+    if (root == null) return root;
 
-    while (!bfsQueue.isEmpty()) {
-        System.out.println(bfsQueue.peek().value);
-        Node topNode = bfsQueue.poll();
+    if (root.value > value) {
+        root.left = delete(root.left, value);
+    } else if (root.value < value) {
+        root.right = delete(root.right, value);
+    } else {
+        if (root.left == null) return root.right;
+        if (root.right == null) return root.left;
 
-        if (topNode.left != null) {
-            bfsQueue.offer(topNode.left);
-        }
-
-        if (topNode.right != null) {
-            bfsQueue.offer(topNode.right);
-        }
+        Node succ = getSuccessor(root);
+        root.value = succ.value;
+        root.right = delete(root.right, succ.value);
     }
+    return root;
+}
+
+static Node getSuccessor(Node curr) {
+    curr = curr.right;
+    while (curr != null && curr.left != null) {
+        curr = curr.left;
+    }
+    return curr;
 }
 ```
 
-Implementation was logically correct for non-null roots.
+### Two-Child Case
 
-Refinements identified:
-
-* handle `root == null` before adding to `ArrayDeque`
-* `peek()` is redundant because `poll()` already returns the current node
-
-Preferred form:
-
-```java
-private void printBFS(Node root) {
-    if (root == null) {
-        return;
-    }
-
-    Queue<Node> bfsQueue = new ArrayDeque<>();
-    bfsQueue.offer(root);
-
-    while (!bfsQueue.isEmpty()) {
-        Node current = bfsQueue.poll();
-
-        System.out.println(current.value);
-
-        if (current.left != null) {
-            bfsQueue.offer(current.left);
-        }
-
-        if (current.right != null) {
-            bfsQueue.offer(current.right);
-        }
-    }
-}
-```
-
-### BFS Invariant
-
-Understood:
-
-> The queue contains discovered but not-yet-processed nodes in BFS order.
-
-### Complexity
-
-Correctly reasoned:
+Correctly used the inorder successor:
 
 ```text
-Time  → O(n)
-Space → O(w)
+minimum node in right subtree
 ```
 
-where:
+Flow:
 
 ```text
-w = maximum frontier / tree width
+copy successor value into target
+↓
+delete original successor from right subtree
+↓
+return resulting subtree root
 ```
 
-Reasoning:
+Understood that the temporary duplicate value is intentional and is removed by the recursive delete.
 
-* each node is enqueued once
-* each node is dequeued once
-* maximum queue occupancy determines auxiliary space
+### Correctness Status
 
-Also recognized that a skewed tree can have:
+Conceptual and implementation-level deletion understanding is sufficient.
+
+Not demonstrated during this session:
 
 ```text
-BFS auxiliary space = O(1)
+full mutation test suite
+delete-until-empty test
+size verification
+systematic isValidBST() after every mutation
 ```
 
-despite:
-
-```text
-height = O(n)
-```
-
-### Level Grouping
-
-Proposed a valid alternative representation:
-
-```java
-Queue<List<Node>>
-```
-
-where each queue element represents one entire level.
-
-Understood that this works by:
-
-```text
-process current List<Node>
-build next List<Node>
-enqueue next list
-```
-
-Also learned the standard interview pattern:
-
-```java
-int levelSize = queue.size();
-```
-
-with:
-
-```java
-Queue<Node>
-```
-
-to snapshot the current frontier.
-
-Understood both approaches encode the same level boundary.
+These remain useful spaced-retrieval tests, but BST deletion is no longer considered a blocking gap.
 
 ---
 
-## Java Collections — Queue Choice
+## AVL Trees — Motivation & Invariant
 
-Preferred abstraction:
+### Why AVL Exists
 
-```java
-Queue<Node> queue = new ArrayDeque<>();
-```
-
-Correctly distinguished:
+Correctly connected the problem with an ordinary BST:
 
 ```text
-Queue<Node>  → behavioral abstraction
-ArrayDeque   → concrete implementation
-```
-
-Understood why `ArrayDeque` is generally preferred over `LinkedList` for BFS:
-
-```text
-fewer per-element allocations
-less object overhead
-less pointer chasing
-better cache locality
-```
-
-This successfully connected back to Phase-1 memory/cache-locality reasoning.
-
----
-
-## HLD Bridge — One-Time Job Scheduler
-
-### Scope Correction
-
-Initially framed the system as a cron scheduler.
-
-Corrected scope:
-
-```text
-one-time scheduled job
+BST ordering can remain valid
+while shape degrades to a linked list
 ```
 
 Example:
 
 ```text
-run once at 2026-09-16 02:00
+1,2,3,4,5,6,7
 ```
 
-Therefore Day 14 needs:
+can produce:
+
+```text
+height = O(n)
+search = O(n)
+insert = O(n)
+```
+
+So:
+
+```text
+BST invariant
+→ ordering correctness
+
+AVL invariant
+→ height/balance correctness
+```
+
+### Height Convention
+
+Day-15 convention:
+
+```text
+height(null) = 0
+height(leaf) = 1
+```
+
+Initial off-by-one misunderstanding was corrected.
+
+Final recurrence:
+
+```text
+height(node)
+=
+1 + max(height(left), height(right))
+```
+
+### Balance Factor
+
+Understood:
+
+```text
+balanceFactor
+=
+height(left) - height(right)
+```
+
+Valid values:
+
+```text
+-1
+0
++1
+```
+
+Invalid:
+
+```text
+<= -2
+>= +2
+```
+
+Important correction:
+
+```text
+balanceFactor does NOT have to equal 1
+```
+
+The invariant is:
+
+```text
+|height(left) - height(right)| <= 1
+```
+
+---
+
+## AVL Rotations
+
+### Rotation Derivation
+
+For:
+
+```text
+    30
+   /
+  20
+ /
+10
+```
+
+correctly identified that:
+
+```text
+20 must become the new subtree root
+```
+
+giving:
+
+```text
+    20
+   /  \
+ 10    30
+```
+
+This was derived structurally rather than by memorizing the label `LL`.
+
+### Rotation Invariant
+
+Understood that a rotation changes tree shape while preserving BST ordering.
+
+Key invariant:
+
+```text
+inorder sequence before rotation
+=
+inorder sequence after rotation
+```
+
+### Middle Subtree / T2
+
+For:
+
+```text
+        30
+       /
+      20
+     /  \
+   10    25
+```
+
+correctly identified that after right rotation, `25` must become the left child of `30`:
+
+```text
+        20
+       /  \
+     10    30
+          /
+         25
+```
+
+Reason:
+
+```text
+20 < 25 < 30
+```
+
+This demonstrated correct understanding of the middle subtree that must not be lost during pointer rewiring.
+
+### Height Metadata After Rotation
+
+Important correction:
+
+> Structural rewiring alone is not enough in an AVL implementation.
+
+Stored height metadata must also be recomputed.
+
+Correct update order:
+
+```text
+lower node first
+new subtree root second
+```
+
+because the new root's height depends on the already-updated child height.
+
+### Left Rotation
+
+For:
+
+```text
+10
+  \
+   20
+     \
+      30
+```
+
+correctly identified:
+
+```text
+20 becomes the new subtree root
+```
+
+### Double Rotations
+
+Conceptually covered:
+
+```text
+LR:
+left rotate child
+then right rotate parent
+
+RL:
+right rotate child
+then left rotate parent
+```
+
+Mental model:
+
+```text
+find unbalanced node
+↓
+find where excess height appeared
+↓
+same direction      → single rotation
+different direction → double rotation
+```
+
+### AVL Scope Decision
+
+For target Senior/Staff backend interviews, required depth retained:
+
+```text
+why ordinary BST can degrade
+AVL balance invariant
+height / balance factor
+purpose of rotations
+LL/RR/LR/RL intuition
+rotation preserves inorder
+```
+
+Not completed:
+
+```text
+full rotateLeft/rotateRight implementation by user
+full AVL insertion implementation
+systematic AVL test suite
+AVL deletion
+```
+
+These are not considered blocking for current interview ROI.
+
+---
+
+## HLD — One-Time Job Scheduler
+
+### Scope
+
+System scope:
+
+```text
+one-time scheduler
+```
+
+Therefore the core scheduling field is:
 
 ```text
 scheduledAt
 ```
 
-rather than a recurring cron expression.
+not a recurring cron expression.
 
-Recurring jobs remain out of scope.
+Possible create model:
 
-### Functional Requirements
+```text
+jobId
+taskType
+payload
+scheduledAt
+```
 
-Derived minimum requirements:
+### Core Functional Requirements
+
+Derived and reasoned through:
 
 ```text
 create scheduled job
-cancel scheduled job
-execute at/after scheduled time
 inspect job status
+execute at/after scheduledAt
+cancel before execution begins
+retry according to configured policy
+recover from worker death
 ```
 
-Possible statuses discussed:
+### State Model
+
+Core states:
 
 ```text
 SCHEDULED
@@ -570,148 +424,711 @@ FAILED
 CANCELLED
 ```
 
-Clarified:
+Optional retry representation discussed:
 
 ```text
-CANCELLED → must not execute
-SUCCEEDED → terminal
-FAILED    → retry policy dependent
-RUNNING   → already owned/processing
+RETRY_WAIT
 ```
 
-### Bad Outcomes Identified
+### Durable Acceptance
 
-Reasoned about:
+Requirement retained:
+
+> Once job creation returns success, the job must survive process restart.
+
+The create path must persist durably before acknowledging success.
+
+---
+
+## Create API Idempotency
+
+Identified failure:
 
 ```text
-worker dies while executing
-job stays RUNNING forever
-job fails without retry or terminal status
-two workers execute the same job
-cancelled job still executes
-job executes before scheduledAt
-job disappears after create returned success
+DB commit succeeds
+↓
+API server crashes before response
+↓
+client retries
+↓
+duplicate jobs may be created
 ```
 
-User independently raised:
+Initial idea considered deriving deduplication from business fields such as:
 
-* long-running jobs
-* worker execution timeout
-* worker death
-* missing completion/status update
-* multiple workers picking jobs
+```text
+application
+scheduledAt
+createdBy
+taskType
+```
 
-These are strong seeds for Day 15 leases, ownership, retries, and recovery.
+This was refined because two legitimate jobs can have identical business fields.
 
-### Durable State
+Preferred contract:
 
-Minimum durable state understood:
+```text
+clientId + idempotencyKey
+```
+
+with a unique constraint.
+
+Semantics:
+
+```text
+same key + same request
+→ return existing job
+
+same key + different request
+→ reject conflict
+```
+
+Important distinction:
 
 ```text
 jobId
-task/payload reference
-scheduledAt
-status
+→ resource identity
+
+idempotencyKey
+→ logical create-request identity
 ```
 
-Additional execution metadata may include:
+Also distinguished:
 
 ```text
-retryCount
-lastAttemptAt
-ownership / lease metadata
-version
+CREATE idempotency
+vs
+EXECUTION idempotency
 ```
-
-Key reasoning:
-
-> Once create returns success, the job record must survive process failure/restart.
-
-Also recognized that terminal statuses should be durable if history/inspection and duplicate prevention depend on them.
-
-### Safety Invariant
-
-Demonstrated:
-
-> Once job creation returns success, the scheduled job must survive a process restart.
-
-### Liveness Invariant
-
-Demonstrated:
-
-> A runnable job must not remain stuck indefinitely just because the worker that owned it died.
-
-### Technology Selection Discipline
-
-No premature selection of:
-
-```text
-Kafka
-Redis
-Postgres
-```
-
-Architecture/mechanism selection was deferred.
 
 ---
 
-## Day 14 Assessment
+## Runnable-Job Access Pattern
+
+Workers need:
+
+```text
+status = SCHEDULED
+AND scheduledAt <= now
+```
+
+Corrected misconception that millions of future jobs would all match this condition.
+
+With an index such as:
+
+```text
+(status, scheduledAt)
+```
+
+the database can efficiently perform a range scan for currently due jobs instead of scanning unrelated future jobs.
+
+Recommended access pattern:
+
+```sql
+WHERE status = 'SCHEDULED'
+  AND scheduled_at <= now()
+ORDER BY scheduled_at
+LIMIT batchSize
+```
+
+Important concepts:
+
+```text
+scheduledAt <= now
+→ eligibility
+
+LIMIT
+→ bounds work per poll
+
+index(status, scheduledAt)
+→ avoids scanning unrelated future rows
+```
+
+---
+
+## Worker Contention & Claiming
+
+User independently identified that many workers repeatedly selecting the same rows can waste time on locking/contention.
+
+A hash-based worker assignment idea was proposed:
+
+```text
+hash(jobId) % workerCount
+```
+
+Trade-offs explored:
+
+```text
+worker failure
+worker-count changes
+rebalancing
+membership management
+```
+
+For V1, the simpler approach was preferred:
+
+```text
+indexed lookup
++
+small batches
++
+short transactional claim
++
+SKIP LOCKED / conditional update
+```
+
+### Atomic Claim
+
+Correctly identified the critical transition:
+
+```text
+SCHEDULED → RUNNING
+```
+
+must be atomic.
+
+Conceptually:
+
+```sql
+UPDATE jobs
+SET status = 'RUNNING',
+    lease_owner = ?,
+    lease_until = ?
+WHERE job_id = ?
+  AND status = 'SCHEDULED';
+```
+
+Interpretation:
+
+```text
+1 row updated
+→ ownership acquired
+
+0 rows updated
+→ another worker/state transition won
+```
+
+### DB Lock vs Logical Ownership
+
+Important distinction:
+
+```text
+database row lock
+→ short-lived claim coordination
+
+lease
+→ longer-lived execution ownership
+```
+
+Database locks must not be held for the full duration of a long-running job.
+
+---
+
+## Dispatcher / Ready Queue Evolution
+
+Proposed architecture improvement:
+
+```text
+single master/dispatcher discovers due jobs
+workers consume dispatched jobs
+```
+
+Refined into:
+
+```text
+Dispatcher
+→ discovers eligible jobs
+
+Workers
+→ execute ready jobs
+```
+
+Advantages:
+
+```text
+reduces repeated DB polling by all workers
+separates scheduling from execution
+```
+
+Risks identified:
+
+```text
+single dispatcher = single point of failure
+DB + external queue introduces dual-write consistency
+```
+
+Possible evolution:
+
+```text
+SCHEDULED
+→ READY
+→ RUNNING
+→ terminal state
+```
+
+V1 decision remains simpler:
+
+```text
+direct indexed DB polling
++
+atomic claims
++
+leases
+```
+
+Dispatcher + durable queue is an optimization/evolution when polling or claim contention becomes a real bottleneck.
+
+---
+
+## Lease Semantics
+
+Correctly identified:
+
+```text
+worker claims job
+↓
+worker dies / stops reporting
+↓
+job must not remain RUNNING forever
+```
+
+Lease metadata:
+
+```text
+leaseOwner
+leaseUntil
+```
+
+allows abandoned ownership to expire.
+
+Important nuance:
+
+> Lease expiry does not prove the original worker stopped executing.
+
+It only means the scheduler no longer trusts that worker as the current owner.
+
+Long-running jobs may renew leases periodically while ownership remains valid.
+
+---
+
+## Fencing Tokens
+
+User independently proposed a monotonic counter/version model:
+
+```text
+worker A → token 1
+worker B → token 2
+...
+```
+
+This maps directly to a fencing-token design.
+
+Example:
+
+```text
+A owns token 41
+lease expires
+
+B reclaims with token 42
+
+A later wakes up
+→ token 41 is stale
+```
+
+Scheduler state updates from the stale owner must be rejected.
+
+Critical distinction:
+
+```text
+fencing prevents stale ownership actions
+ONLY where the protected boundary validates the token
+```
+
+A fencing number by itself does not prevent arbitrary downstream side effects.
+
+---
+
+## Execution Semantics & Idempotency
+
+Strong distinction established:
+
+```text
+single valid owner
+!=
+exactly-once business execution
+```
+
+Failure case:
+
+```text
+worker performs side effect
+↓
+worker crashes before marking success
+↓
+lease expires
+↓
+another worker retries
+↓
+duplicate execution attempt occurs
+```
+
+Therefore the scheduler should be described as:
+
+```text
+at-least-once execution
+```
+
+unless a stronger transactional mechanism exists.
+
+Downstream/business effect should ideally use:
+
+```text
+idempotencyKey = jobId
+```
+
+Important separation:
+
+```text
+Lease
+→ temporary ownership
+
+Fencing token
+→ protects against stale ownership
+
+Idempotency
+→ protects business effect from duplicate attempts
+```
+
+---
+
+## Retry Policy
+
+Correctly insisted on maintaining a clear scheduler/application boundary.
+
+### Application/task adapter owns
+
+```text
+whether a specific failure is retryable
+```
+
+Examples may map into generic outcomes:
+
+```text
+SUCCESS
+RETRYABLE_FAILURE
+NON_RETRYABLE_FAILURE
+```
+
+### Scheduler owns
+
+```text
+attemptCount
+maxAttempts
+backoff
+nextAttemptAt
+terminal FAILED transition
+```
+
+Possible fields:
+
+```text
+attemptCount
+maxAttempts
+nextAttemptAt
+lastFailureReason
+```
+
+Important reasoning:
+
+> The scheduler should not embed domain-specific HTTP/business semantics, but it should provide generic retry machinery so every caller does not reinvent orchestration.
+
+Retries stop when:
+
+```text
+non-retryable failure
+or
+maxAttempts exhausted
+```
+
+---
+
+## Cancellation Policy
+
+A deliberate V1 boundary was chosen:
+
+```text
+SCHEDULED → cancellable
+RUNNING   → not cancellable
+```
+
+Reasoning:
+
+Once a job is RUNNING, the scheduler may not know whether execution is:
+
+```text
+1% complete
+99% complete
+blocked
+already side-effected but not yet acknowledged
+```
+
+Therefore V1 avoids pretending arbitrary running work can be safely stopped.
+
+Cancellation must be atomic:
+
+```text
+SCHEDULED → CANCELLED
+```
+
+If worker claim and cancellation race, only one conditional state transition should win.
+
+---
+
+## Durable Data Model
+
+By the end of the design, the job record conceptually included:
+
+```text
+jobId
+clientId
+idempotencyKey
+
+taskType
+payload
+
+scheduledAt
+status
+
+attemptCount
+maxAttempts
+nextAttemptAt
+
+leaseOwner
+leaseUntil
+fencingToken
+
+createdAt
+updatedAt
+lastFailureReason
+```
+
+Not every field is mandatory in every implementation, but each discussed field maps to a specific correctness or operational requirement.
+
+---
+
+## Observability
+
+Relevant scheduler metrics:
+
+```text
+scheduled count
+runnable backlog
+oldest runnable age
+RUNNING count
+success rate
+failure rate
+retry rate
+lease expirations
+task execution latency
+schedule delay
+worker utilization
+claim conflicts
+```
+
+Important derived metric:
+
+```text
+scheduleDelay
+=
+actualStartTime - scheduledAt
+```
+
+Useful dimensions:
+
+```text
+taskType
+workerId
+attempt
+downstream dependency
+fencingToken
+failure reason
+```
+
+---
+
+## Production Failure Drill
+
+Scenario:
+
+```text
+RUNNING ↑
+SUCCEEDED ↓
+oldest runnable age ↑
+lease expirations ↑
+
+CPU normal
+DB latency normal
+```
+
+### Hypothesis 1 — Lease Duration Too Short / Lease Renewal Failure
+
+User correctly correlated increasing RUNNING jobs and lease expirations with possible lease-policy problems.
+
+Evidence needed:
+
+```text
+task execution P50/P95/P99
+vs
+lease duration
+
+lease-renewal success/failure
+```
+
+Important discipline:
+
+Do not immediately increase lease duration.
+
+If workers are actually dead, a longer lease simply delays recovery.
+
+### Hypothesis 2 — Downstream Dependency Slowdown
+
+Correctly identified that:
+
+```text
+CPU normal
+DB normal
+```
+
+can coexist with workers blocked on external I/O.
+
+Evidence:
+
+```text
+latency/error rate by downstream dependency
+task duration by taskType
+thread states
+timeouts
+```
+
+A downstream outage may not be owned by the scheduler team, but the scheduler must still handle it safely through:
+
+```text
+timeouts
+retry/backoff
+telemetry
+bounded execution
+```
+
+### Hypothesis 3 — Worker Saturation / Thread Starvation
+
+Increasing worker count was proposed as a possible mitigation, but refined to require evidence first.
+
+Evidence:
+
+```text
+activeWorkers / maxWorkers
+queue depth
+thread dumps
+jobs exceeding expected duration
+```
+
+Important caution:
+
+```text
+more workers
++
+slow downstream
+→ may amplify the incident
+```
+
+Therefore capacity should be increased only after identifying where the bottleneck actually sits.
+
+### Debugging Discipline
+
+Strong improvement demonstrated:
+
+```text
+Observation
+↓
+Hypothesis
+↓
+Supporting evidence
+↓
+Rejecting evidence
+↓
+Mitigation
+```
+
+Correlation was correctly treated as a hypothesis generator, not proof of root cause.
+
+---
+
+## Day 15 Assessment
 
 ### Strong
 
-* Global-vs-local BST invariant
-* Bounds-based BST validation
-* Recursive bound propagation
-* Validate-BST implementation
-* `O(n)` / `O(h)` complexity reasoning
-* BFS derivation from FIFO
-* BFS implementation
-* `O(w)` auxiliary-space reasoning
-* Java `Queue<Node>` + `ArrayDeque`
-* cache-locality reasoning
-* Job Scheduler failure-mode thinking
-* safety vs liveness distinction
-* durable-state reasoning
+* BST deletion recursive-return contract
+* BST two-child deletion implementation
+* AVL motivation and balance-factor reasoning
+* understanding that rotation preserves inorder
+* T2/middle-subtree reasoning
+* distinction between structural rotation and height bookkeeping
+* one-time scheduler requirements
+* durable acceptance
+* create API idempotency
+* indexed runnable-job access pattern
+* contention awareness
+* atomic claim reasoning
+* lease semantics
+* stale-worker reasoning
+* fencing-token intuition
+* at-least-once vs exactly-once distinction
+* downstream idempotency boundary
+* retry ownership split between scheduler and task implementation
+* cancellation-state boundary
+* dispatcher/queue trade-off reasoning
+* production-debugging discipline
 
 ### Needs Reinforcement
 
-BST deletion implementation:
+AVL coding fluency:
 
 ```text
-recursive subtree-root return contract
-or
-explicit parent-based pointer rewiring
+rotateLeft
+rotateRight
+height updates
+full AVL insert
+rotation test cases
 ```
 
-Conceptual deletion understanding is sufficient; implementation fluency is not yet complete.
+This is intentionally lower priority and should be revisited through spaced retrieval rather than blocking progress.
 
-Do not block curriculum progress on this now.
+Also worth revisiting later:
+
+```text
+BST mutation test suite
+scheduler DB/queue dual-write patterns such as outbox
+large-scale scheduler partitioning only when scale requires it
+```
 
 ---
 
-## Exact Day 15 Starting Direction
+## Exact Day 16 Starting Direction
 
-Continue the Job Scheduler into full HLD:
-
-```text
-API
-storage/access pattern
-worker discovery
-ownership
-leases
-fencing
-retries
-idempotency
-failure recovery
-observability
-```
-
-Then continue the balanced-tree progression as scheduled.
-
-Carry forward one maintenance item:
+Proceed to:
 
 ```text
-BST deletion implementation + mutation tests
+Red-Black Tree intuition / TreeMap internals
++
+binary heap / PriorityQueue foundations
++
+tree DSA transfer
++
+short production-debugging block
 ```
 
-but treat it as spaced retrieval / reinforcement rather than restarting Day 14.
+Start with the conceptual bridge:
+
+> AVL and Red-Black trees both preserve logarithmic height, but they make different trade-offs in how strictly they balance the tree.
+
+Then move quickly into heaps/PriorityQueue, which has higher direct interview ROI.
