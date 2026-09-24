@@ -1,12 +1,26 @@
-# Day 15 — AVL Balancing, Rotations & Full Job Scheduler HLD
+# Day 16 — Weekend Consolidation, Two Pointers & Binary Heap Foundations
 
 ## Status
 
-**Completed conceptually with AVL implementation intentionally not over-invested**
+**Completed**
 
-Day 15 closed the parked BST deletion implementation, established the AVL balancing model and rotation intuition, and completed the one-time Job Scheduler HLD with failure handling, retries, cancellation, idempotency, leases, fencing, observability, and production-debugging reasoning.
+Day 16 completed the weekend cumulative-retrieval block, established two-pointer elimination reasoning through Two Sum II, Container With Most Water, and 3Sum, and introduced binary heaps from first principles through a working `IntMinHeap` implementation.
 
-The AVL section was deliberately kept to interview-relevant depth. Full AVL insertion implementation and exhaustive rotation tests were not completed and are not blocking curriculum progress.
+Red-Black Tree / TreeMap internals were intentionally deprioritized because their immediate interview ROI is lower than heaps, graphs, JVM, databases, concurrency, and system design.
+
+The strongest new Phase-2 result is that heap mechanics were derived rather than memorized:
+
+```text
+complete binary tree
++
+local heap-order invariant
++
+array representation
++
+sift up / sift down
+```
+
+---
 
 ## Phase
 
@@ -14,170 +28,481 @@ Phase 2 — Trees, Heaps, Graphs, Collections & JVM Execution
 
 ---
 
-## BST Deletion Maintenance
+# Weekend Cumulative Revival
 
-### Recursive Contract
+## Arrays / Hashing
 
-The deletion contract was clarified and locked in:
+### Two Sum
 
-```java
-Node delete(Node root, int value)
-```
-
-means:
-
-> Return the root of this subtree after deletion.
-
-Important distinction:
+Correctly retrieved the complement-lookup abstraction:
 
 ```text
-return value != deleted node
-return value != "replacement value"
+current value = x
 
-return value = new root of the affected subtree
+needed value
+=
+target - x
 ```
 
-This explains why recursive reassignment is required:
-
-```java
-root.left = delete(root.left, value);
-root.right = delete(root.right, value);
-```
-
-The recursive call may return:
+Rather than comparing every pair:
 
 ```text
-same subtree root
-different subtree root
-null
+for each x
+→ ask whether target - x has already been seen
 ```
 
-and the parent reconnects to that returned root.
-
-### Implementation Demonstrated
-
-```java
-public Node delete(Node root, int value){
-    if (root == null) return root;
-
-    if (root.value > value) {
-        root.left = delete(root.left, value);
-    } else if (root.value < value) {
-        root.right = delete(root.right, value);
-    } else {
-        if (root.left == null) return root.right;
-        if (root.right == null) return root.left;
-
-        Node succ = getSuccessor(root);
-        root.value = succ.value;
-        root.right = delete(root.right, succ.value);
-    }
-    return root;
-}
-
-static Node getSuccessor(Node curr) {
-    curr = curr.right;
-    while (curr != null && curr.left != null) {
-        curr = curr.left;
-    }
-    return curr;
-}
-```
-
-### Two-Child Case
-
-Correctly used the inorder successor:
+Complexity understood:
 
 ```text
-minimum node in right subtree
+brute force
+→ O(n²)
+
+HashMap / HashSet
+→ expected O(n)
 ```
 
-Flow:
+Also understood the distinction between:
 
 ```text
-copy successor value into target
-↓
-delete original successor from right subtree
-↓
-return resulting subtree root
+HashSet
+→ membership
+
+frequency map
+→ membership + count
 ```
 
-Understood that the temporary duplicate value is intentional and is removed by the recursive delete.
+and correctly identified that frequency information is required when duplicate occurrences contribute independently to the answer.
 
-### Correctness Status
+### HashMap Complexity
 
-Conceptual and implementation-level deletion understanding is sufficient.
-
-Not demonstrated during this session:
+Correctly recalled:
 
 ```text
-full mutation test suite
-delete-until-empty test
-size verification
-systematic isValidBST() after every mutation
+expected lookup → O(1)
 ```
 
-These remain useful spaced-retrieval tests, but BST deletion is no longer considered a blocking gap.
+and identified pathological collision behavior as the reason lookup can degrade.
+
+Java-specific treeified-bucket behavior was discussed as an implementation nuance.
+
+### Array Locality
+
+Strong retrieval.
+
+Correctly connected:
+
+```text
+array
+→ contiguous memory
+→ spatial locality
+→ cache-line utilization
+→ CPU prefetch friendliness
+```
+
+versus:
+
+```text
+linked structure
+→ pointer chasing
+→ nodes may be scattered
+→ increased cache misses
+```
+
+Also correctly distinguished:
+
+```text
+array index access → O(1)
+linked-list nth access → O(n)
+```
+
+from the separate hardware-locality advantage during traversal.
 
 ---
 
-## AVL Trees — Motivation & Invariant
+# Prefix Sum Revival
 
-### Why AVL Exists
+## Subarray Sum Equals K
 
-Correctly connected the problem with an ordinary BST:
+Correctly recalled the basic relationship:
 
 ```text
-BST ordering can remain valid
-while shape degrades to a linked list
+currentPrefix - earlierPrefix = k
+
+therefore:
+
+earlierPrefix = currentPrefix - k
 ```
 
-Example:
+Understood that the algorithm can run as a single left-to-right traversal.
+
+Important frequency insight retrieved:
 
 ```text
-1,2,3,4,5,6,7
+if the required earlier prefix occurred N times
+→ there are N valid subarrays ending at the current position
 ```
 
-can produce:
+Therefore:
 
 ```text
-height = O(n)
-search = O(n)
-insert = O(n)
+frequency map
 ```
 
-So:
+is required rather than simple membership.
+
+Correctly understood initialization:
 
 ```text
-BST invariant
-→ ordering correctness
-
-AVL invariant
-→ height/balance correctness
+0 → 1
 ```
 
-### Height Convention
+as representing the empty prefix before index `0`.
 
-Day-15 convention:
+---
+
+## Subarrays Divisible by K
+
+The pattern was recognized, but the modulo derivation initially required reinforcement.
+
+Correct derivation established:
 
 ```text
-height(null) = 0
-height(leaf) = 1
+(prefix[i] - prefix[j]) % k == 0
+
+iff
+
+prefix[i] % k == prefix[j] % k
 ```
 
-Initial off-by-one misunderstanding was corrected.
-
-Final recurrence:
+Reason:
 
 ```text
-height(node)
+prefix[i] = a*k + r1
+prefix[j] = b*k + r2
+
+difference
 =
-1 + max(height(left), height(right))
+(a-b)k + (r1-r2)
+
+for difference to be divisible by k:
+r1 = r2
 ```
 
-### Balance Factor
+Correctly retained:
 
-Understood:
+```text
+0 → 1
+```
+
+for the empty-prefix remainder.
+
+### Java Negative Remainders
+
+This was the weakest revived Prefix Sum detail.
+
+Initial reasoning incorrectly treated Java negative modulo as if it were already normalized.
+
+Correct behavior established:
+
+```java
+-1 % 5 == -1
+```
+
+Normalization:
+
+```java
+((prefixSum % k) + k) % k
+```
+
+or preferably:
+
+```java
+Math.floorMod(prefixSum, k)
+```
+
+Important correction:
+
+```text
+do NOT use abs(remainder)
+```
+
+because absolute value can map values into the wrong equivalence class.
+
+### Prefix-Sum Revival Assessment
+
+```text
+core abstraction       → strong
+frequency reasoning    → strong
+empty-prefix reasoning → strong
+modulo derivation      → needs spaced reinforcement
+negative remainder     → needs spaced reinforcement
+```
+
+---
+
+# Binary Search Revival
+
+Correctly distinguished:
+
+```text
+exact search
+→ find any matching value
+
+lower bound
+→ first index with nums[i] >= target
+```
+
+For:
+
+```text
+[1,3,3,3,7]
+```
+
+and target `3`:
+
+```text
+exact search
+→ may return any of indices 1,2,3
+
+lower bound
+→ must return index 1
+```
+
+### Candidate Preservation
+
+Correctly reasoned that:
+
+```text
+nums[mid] >= target
+```
+
+means `mid` is already a valid lower-bound candidate.
+
+Therefore:
+
+```java
+right = mid;
+```
+
+is required rather than:
+
+```java
+right = mid - 1;
+```
+
+because `mid` itself may be the answer.
+
+### General Binary-Search Abstraction
+
+Initially answered:
+
+```text
+array must be sorted
+```
+
+then generalized correctly to:
+
+```text
+monotonic predicate / ordered eliminability
+```
+
+Example lower-bound predicate:
+
+```text
+false false false true true true
+```
+
+Binary search works because one observation allows an entire region to be discarded safely.
+
+Binary-search revival status:
+
+```text
+strong
+```
+
+---
+
+# Sliding Window Revival
+
+Strong retrieval.
+
+Correctly identified why positive-only sum windows support pointer movement:
+
+```text
+move right
+→ sum cannot decrease
+
+move left
+→ sum cannot increase
+```
+
+For minimum-length subarray with:
+
+```text
+sum >= target
+```
+
+correct invariant:
+
+```text
+while current window remains valid:
+    record answer
+    shrink from left
+```
+
+Correctly identified why negative numbers break the argument:
+
+```text
+window sum is no longer monotonic
+```
+
+and why divisibility is not monotonic:
+
+```text
+(sum + x) % k
+```
+
+can move arbitrarily among remainder classes.
+
+Sliding-window revival status:
+
+```text
+strong
+```
+
+---
+
+# Stack / Queue / LRU Revival
+
+## BFS
+
+Correctly identified FIFO as necessary for preserving level-order processing.
+
+Refinement established:
+
+```text
+FIFO
+→ nodes already discovered at current depth
+   execute before newly discovered deeper nodes
+```
+
+Using a stack instead naturally changes the traversal toward DFS.
+
+## LRU
+
+Correctly explained why:
+
+```java
+get(key)
+```
+
+is logically a mutation:
+
+```text
+successful access
+→ entry becomes most recently used
+→ move node in DLL
+```
+
+Correctly retained the dual-structure responsibility:
+
+```text
+HashMap
+→ key → node lookup
+
+DLL
+→ recency ordering
+```
+
+and the consistency invariant:
+
+```text
+map entries
+==
+DLL logical cache entries
+```
+
+A map-only entry would be retrievable but not correctly represented in recency/eviction state.
+
+A DLL-only entry would become an unreachable ghost entry.
+
+LRU revival status:
+
+```text
+strong
+```
+
+---
+
+# Tree / BST / AVL Revival
+
+## Binary Tree vs BST
+
+Correctly stated:
+
+```text
+binary tree
+→ at most two children
+
+BST
+→ binary tree + ordering invariant
+```
+
+Refinement reinforced:
+
+```text
+all values in left subtree < node
+all values in right subtree > node
+```
+
+not merely immediate-child comparison.
+
+## Validate BST
+
+Correctly explained why parent-only comparison is insufficient.
+
+Ancestor constraints must be propagated:
+
+```text
+root
+→ (-∞, +∞)
+
+left
+→ (lower, root.value)
+
+right
+→ (root.value, upper)
+```
+
+## BST Complexity
+
+Correctly explained:
+
+```text
+BST search = O(h)
+```
+
+because ordinary BSTs may become skewed.
+
+```text
+balanced tree
+h = O(log n)
+
+skewed tree
+h = O(n)
+```
+
+Minor terminology correction:
+
+```text
+skewed BST
+```
+
+rather than skewed AVL.
+
+## AVL
+
+Correctly retained:
 
 ```text
 balanceFactor
@@ -185,950 +510,1208 @@ balanceFactor
 height(left) - height(right)
 ```
 
-Valid values:
+with:
 
 ```text
--1
-0
-+1
+-1, 0, +1
 ```
 
-Invalid:
+allowed.
+
+Correctly understood that rotations must preserve:
 
 ```text
-<= -2
->= +2
+BST ordering
++
+AVL balance
 ```
 
-Important correction:
+Tree revival status:
 
 ```text
-balanceFactor does NOT have to equal 1
-```
-
-The invariant is:
-
-```text
-|height(left) - height(right)| <= 1
+strong
 ```
 
 ---
 
-## AVL Rotations
+# Two-Pointer Interview Track
 
-### Rotation Derivation
+## Core Abstraction
+
+Correctly generalized two pointers beyond having two variables.
+
+Required property:
+
+```text
+ordering / monotonicity
++
+safe elimination
+```
+
+A pointer may move only when doing so provably discards states that cannot contain the required answer.
+
+---
+
+# Two Sum II
+
+Given sorted data:
+
+```text
+numbers[left] + numbers[right]
+```
+
+correct pointer movement retained:
+
+```text
+sum < target
+→ left++
+
+sum > target
+→ right--
+```
+
+Pointer-elimination proof initially needed prompting, then was understood.
 
 For:
 
 ```text
-    30
-   /
-  20
- /
-10
+sum < target
 ```
 
-correctly identified that:
+because every smaller right value is:
 
 ```text
-20 must become the new subtree root
+<= current right
 ```
 
-giving:
+every pair using the current left remains:
 
 ```text
-    20
-   /  \
- 10    30
+<= current sum < target
 ```
 
-This was derived structurally rather than by memorizing the label `LL`.
+therefore current `left` can be discarded safely.
 
-### Rotation Invariant
+Symmetric argument applies for `sum > target`.
 
-Understood that a rotation changes tree shape while preserving BST ordering.
-
-Key invariant:
+Complexity:
 
 ```text
-inorder sequence before rotation
+Time  → O(n)
+Space → O(1)
+```
+
+Status:
+
+```text
+solution mechanics          → strong
+elimination proof           → understood after prompting
+```
+
+---
+
+# Container With Most Water
+
+## Formula
+
+Derived:
+
+```text
+width
 =
-inorder sequence after rotation
+right - left
+
+usableHeight
+=
+min(height[left], height[right])
+
+area
+=
+width * usableHeight
 ```
 
-### Middle Subtree / T2
+Initially expected height behavior to provide monotonicity.
 
-For:
+Important correction established:
+
+> Heights themselves need not be monotonic.
+
+The elimination proof instead uses the limiting wall.
+
+If:
 
 ```text
-        30
-       /
-      20
-     /  \
-   10    25
+height[left] < height[right]
 ```
 
-correctly identified that after right rotation, `25` must become the left child of `30`:
+then current area is limited by `height[left]`.
+
+Keeping the same left while moving right inward gives:
 
 ```text
-        20
-       /  \
-     10    30
-          /
-         25
-```
-
-Reason:
-
-```text
-20 < 25 < 30
-```
-
-This demonstrated correct understanding of the middle subtree that must not be lost during pointer rewiring.
-
-### Height Metadata After Rotation
-
-Important correction:
-
-> Structural rewiring alone is not enough in an AVL implementation.
-
-Stored height metadata must also be recomputed.
-
-Correct update order:
-
-```text
-lower node first
-new subtree root second
-```
-
-because the new root's height depends on the already-updated child height.
-
-### Left Rotation
-
-For:
-
-```text
-10
-  \
-   20
-     \
-      30
-```
-
-correctly identified:
-
-```text
-20 becomes the new subtree root
-```
-
-### Double Rotations
-
-Conceptually covered:
-
-```text
-LR:
-left rotate child
-then right rotate parent
-
-RL:
-right rotate child
-then left rotate parent
-```
-
-Mental model:
-
-```text
-find unbalanced node
-↓
-find where excess height appeared
-↓
-same direction      → single rotation
-different direction → double rotation
-```
-
-### AVL Scope Decision
-
-For target Senior/Staff backend interviews, required depth retained:
-
-```text
-why ordinary BST can degrade
-AVL balance invariant
-height / balance factor
-purpose of rotations
-LL/RR/LR/RL intuition
-rotation preserves inorder
-```
-
-Not completed:
-
-```text
-full rotateLeft/rotateRight implementation by user
-full AVL insertion implementation
-systematic AVL test suite
-AVL deletion
-```
-
-These are not considered blocking for current interview ROI.
-
----
-
-## HLD — One-Time Job Scheduler
-
-### Scope
-
-System scope:
-
-```text
-one-time scheduler
-```
-
-Therefore the core scheduling field is:
-
-```text
-scheduledAt
-```
-
-not a recurring cron expression.
-
-Possible create model:
-
-```text
-jobId
-taskType
-payload
-scheduledAt
-```
-
-### Core Functional Requirements
-
-Derived and reasoned through:
-
-```text
-create scheduled job
-inspect job status
-execute at/after scheduledAt
-cancel before execution begins
-retry according to configured policy
-recover from worker death
-```
-
-### State Model
-
-Core states:
-
-```text
-SCHEDULED
-RUNNING
-SUCCEEDED
-FAILED
-CANCELLED
-```
-
-Optional retry representation discussed:
-
-```text
-RETRY_WAIT
-```
-
-### Durable Acceptance
-
-Requirement retained:
-
-> Once job creation returns success, the job must survive process restart.
-
-The create path must persist durably before acknowledging success.
-
----
-
-## Create API Idempotency
-
-Identified failure:
-
-```text
-DB commit succeeds
-↓
-API server crashes before response
-↓
-client retries
-↓
-duplicate jobs may be created
-```
-
-Initial idea considered deriving deduplication from business fields such as:
-
-```text
-application
-scheduledAt
-createdBy
-taskType
-```
-
-This was refined because two legitimate jobs can have identical business fields.
-
-Preferred contract:
-
-```text
-clientId + idempotencyKey
-```
-
-with a unique constraint.
-
-Semantics:
-
-```text
-same key + same request
-→ return existing job
-
-same key + different request
-→ reject conflict
-```
-
-Important distinction:
-
-```text
-jobId
-→ resource identity
-
-idempotencyKey
-→ logical create-request identity
-```
-
-Also distinguished:
-
-```text
-CREATE idempotency
-vs
-EXECUTION idempotency
-```
-
----
-
-## Runnable-Job Access Pattern
-
-Workers need:
-
-```text
-status = SCHEDULED
-AND scheduledAt <= now
-```
-
-Corrected misconception that millions of future jobs would all match this condition.
-
-With an index such as:
-
-```text
-(status, scheduledAt)
-```
-
-the database can efficiently perform a range scan for currently due jobs instead of scanning unrelated future jobs.
-
-Recommended access pattern:
-
-```sql
-WHERE status = 'SCHEDULED'
-  AND scheduled_at <= now()
-ORDER BY scheduled_at
-LIMIT batchSize
-```
-
-Important concepts:
-
-```text
-scheduledAt <= now
-→ eligibility
-
-LIMIT
-→ bounds work per poll
-
-index(status, scheduledAt)
-→ avoids scanning unrelated future rows
-```
-
----
-
-## Worker Contention & Claiming
-
-User independently identified that many workers repeatedly selecting the same rows can waste time on locking/contention.
-
-A hash-based worker assignment idea was proposed:
-
-```text
-hash(jobId) % workerCount
-```
-
-Trade-offs explored:
-
-```text
-worker failure
-worker-count changes
-rebalancing
-membership management
-```
-
-For V1, the simpler approach was preferred:
-
-```text
-indexed lookup
+smaller width
 +
-small batches
-+
-short transactional claim
-+
-SKIP LOCKED / conditional update
+height still <= height[left]
 ```
 
-### Atomic Claim
+so no improved solution can retain that left boundary.
 
-Correctly identified the critical transition:
+Therefore:
 
 ```text
-SCHEDULED → RUNNING
+left++
 ```
 
-must be atomic.
+is safe.
 
-Conceptually:
+Key understanding:
 
-```sql
-UPDATE jobs
-SET status = 'RUNNING',
-    lease_owner = ?,
-    lease_until = ?
-WHERE job_id = ?
-  AND status = 'SCHEDULED';
+> Moving the shorter wall does not guarantee improvement. It is simply the only move that still has a chance of improvement.
+
+### Implementation Demonstrated
+
+```java
+public static int maxArea(int[] heightArray) {
+    int leftIndex = 0;
+    int rightIndex = heightArray.length - 1;
+    int maxArea = 0;
+
+    while (rightIndex > leftIndex) {
+        int height =
+            Math.min(
+                heightArray[rightIndex],
+                heightArray[leftIndex]
+            );
+
+        int width = rightIndex - leftIndex;
+
+        int area = width * height;
+
+        maxArea = Math.max(area, maxArea);
+
+        if (heightArray[rightIndex] > heightArray[leftIndex]) {
+            leftIndex++;
+        } else {
+            rightIndex--;
+        }
+    }
+
+    return maxArea;
+}
 ```
 
-Interpretation:
+Complexity:
 
 ```text
-1 row updated
-→ ownership acquired
-
-0 rows updated
-→ another worker/state transition won
+Time  → O(n)
+Space → O(1)
 ```
 
-### DB Lock vs Logical Ownership
-
-Important distinction:
+Equal-height case understood:
 
 ```text
-database row lock
-→ short-lived claim coordination
-
-lease
-→ longer-lived execution ownership
+either pointer may move
 ```
 
-Database locks must not be held for the full duration of a long-running job.
+Status:
+
+```text
+implementation       → correct
+pointer mechanics    → correct
+elimination proof    → required prompting, then understood
+```
 
 ---
 
-## Dispatcher / Ready Queue Evolution
+# 3Sum
 
-Proposed architecture improvement:
-
-```text
-single master/dispatcher discovers due jobs
-workers consume dispatched jobs
-```
-
-Refined into:
-
-```text
-Dispatcher
-→ discovers eligible jobs
-
-Workers
-→ execute ready jobs
-```
-
-Advantages:
-
-```text
-reduces repeated DB polling by all workers
-separates scheduling from execution
-```
-
-Risks identified:
-
-```text
-single dispatcher = single point of failure
-DB + external queue introduces dual-write consistency
-```
-
-Possible evolution:
-
-```text
-SCHEDULED
-→ READY
-→ RUNNING
-→ terminal state
-```
-
-V1 decision remains simpler:
-
-```text
-direct indexed DB polling
-+
-atomic claims
-+
-leases
-```
-
-Dispatcher + durable queue is an optimization/evolution when polling or claim contention becomes a real bottleneck.
-
----
-
-## Lease Semantics
+## Reduction
 
 Correctly identified:
 
 ```text
-worker claims job
-↓
-worker dies / stops reporting
-↓
-job must not remain RUNNING forever
+brute force
+→ O(n³)
 ```
 
-Lease metadata:
+and then derived:
 
 ```text
-leaseOwner
-leaseUntil
+sort
+fix nums[i]
+solve remaining pair using two pointers
 ```
 
-allows abandoned ownership to expire.
+leading to:
 
-Important nuance:
+```text
+O(n²)
+```
 
-> Lease expiry does not prove the original worker stopped executing.
+Target complexity correctly understood as the expected interview solution.
 
-It only means the scheduler no longer trusts that worker as the current owner.
+Sorting enables:
 
-Long-running jobs may renew leases periodically while ownership remains valid.
+```text
+directional elimination
+```
+
+because increasing `left` cannot reduce the value and decreasing `right` cannot increase it.
 
 ---
 
-## Fencing Tokens
+## Initial Implementation Issue
 
-User independently proposed a monotonic counter/version model:
+Initial version failed to reset:
 
 ```text
-worker A → token 1
-worker B → token 2
-...
+rightPointer
 ```
 
-This maps directly to a fencing-token design.
+for each fixed `i`.
+
+This was identified and corrected.
+
+---
+
+## Duplicate Handling
+
+Pointer-level duplicate skipping was discussed:
+
+```text
+skip duplicate nums[i]
+
+after finding triplet:
+    move left
+    move right
+    skip equal left values
+    skip equal right values
+```
+
+Final user implementation instead used:
+
+```java
+Set<ArrayList<Integer>>
+```
+
+to deduplicate generated triplets.
+
+This is functionally valid.
+
+Pointer-level duplicate prevention was understood but not implemented.
+
+### Final Demonstrated Approach
+
+```java
+public static Set findPairs(int nums[]) {
+    Set<ArrayList<Integer>> pairs = new HashSet<>();
+
+    Arrays.sort(nums);
+
+    for (int i = 0; i < nums.length; i++) {
+        int candidate = nums[i];
+
+        int leftPointer = i + 1;
+        int rightPointer = nums.length - 1;
+
+        while (rightPointer > leftPointer) {
+            ArrayList<Integer> pair = new ArrayList<>();
+
+            if (nums[leftPointer] + nums[rightPointer]
+                    == candidate * -1) {
+
+                pair.add(candidate);
+                pair.add(nums[leftPointer]);
+                pair.add(nums[rightPointer]);
+
+                pairs.add(pair);
+            }
+
+            if (nums[leftPointer] + nums[rightPointer]
+                    > candidate * -1) {
+                rightPointer--;
+            } else {
+                leftPointer++;
+            }
+        }
+    }
+
+    return pairs;
+}
+```
+
+Additional refinement discussed:
+
+```text
+avoid candidate * -1 overflow edge case
+```
+
+by evaluating three-number sum using `long`.
+
+### 3Sum Status
+
+```text
+O(n³) brute force             → understood
+O(n²) reduction               → understood
+sort + two pointers           → implemented
+right reset bug               → identified and fixed
+HashSet deduplication         → implemented
+pointer duplicate skipping    → understood, not implemented
+```
+
+---
+
+# Red-Black Tree / TreeMap
+
+Detailed Red-Black Tree material was intentionally deferred.
+
+Current retained interview-level knowledge:
+
+```text
+TreeMap
+→ ordered map
+→ balanced-tree implementation
+→ O(log n) get/put/remove
+→ supports ordered navigation
+   floor / ceiling / ranges
+```
+
+Red-Black insertion/deletion/color-fixup mechanics are intentionally not blocking current progress.
+
+---
+
+# Binary Heap Foundations
+
+## Why Heap
+
+Compared alternatives.
+
+### Unsorted Array
+
+```text
+add
+→ O(1) amortized
+
+peek/find min
+→ O(n)
+
+remove min
+→ O(n)
+```
+
+### Sorted Array
+
+```text
+peek min
+→ O(1)
+
+insert
+→ O(n)
+```
+
+even when insertion position is found in `O(log n)` because array elements must be shifted.
+
+### Heap
+
+Target operations:
+
+```text
+peek min
+→ O(1)
+
+insert
+→ O(log n)
+
+remove min
+→ O(log n)
+```
+
+---
+
+# Heap vs Balanced BST
+
+User independently proposed using a BST for min/max extraction.
+
+Correct trade-off discussion established:
+
+```text
+balanced BST
+→ richer ordering semantics
+→ arbitrary search
+→ predecessor/successor
+→ floor/ceiling
+→ sorted traversal
+
+heap
+→ specialized extreme-priority access
+→ compact array representation
+→ less metadata
+→ better locality
+```
+
+Core distinction retained:
+
+> Balanced BST provides rich global ordering. Heap maintains only enough ordering to expose one extreme efficiently.
+
+---
+
+# Binary Heap Representation
+
+Important mental model established:
+
+```text
+Heap
+=
+tree logically
++
+array physically
+```
+
+A binary heap is a complete binary tree, typically represented level-by-level in an array.
+
+Zero-based index formulas correctly retrieved:
+
+```text
+parent(i)
+=
+(i - 1) / 2
+
+left(i)
+=
+2*i + 1
+
+right(i)
+=
+2*i + 2
+```
+
+Example reasoning for index `1` was correct:
+
+```text
+parent → 0
+left   → 3
+right  → 4
+```
+
+---
+
+# Heap Ordering Invariant
+
+For min-heap:
+
+```text
+parent <= children
+```
+
+Important distinction understood:
+
+```text
+heap is NOT globally sorted
+```
+
+Sibling ordering is irrelevant.
 
 Example:
 
 ```text
-A owns token 41
-lease expires
-
-B reclaims with token 42
-
-A later wakes up
-→ token 41 is stale
+        1
+      /   \
+     4     3
 ```
 
-Scheduler state updates from the stale owner must be rejected.
-
-Critical distinction:
+is valid even though:
 
 ```text
-fencing prevents stale ownership actions
-ONLY where the protected boundary validates the token
+4 > 3
 ```
 
-A fencing number by itself does not prevent arbitrary downstream side effects.
-
----
-
-## Execution Semantics & Idempotency
-
-Strong distinction established:
+because both children satisfy:
 
 ```text
-single valid owner
-!=
-exactly-once business execution
-```
-
-Failure case:
-
-```text
-worker performs side effect
-↓
-worker crashes before marking success
-↓
-lease expires
-↓
-another worker retries
-↓
-duplicate execution attempt occurs
-```
-
-Therefore the scheduler should be described as:
-
-```text
-at-least-once execution
-```
-
-unless a stronger transactional mechanism exists.
-
-Downstream/business effect should ideally use:
-
-```text
-idempotencyKey = jobId
-```
-
-Important separation:
-
-```text
-Lease
-→ temporary ownership
-
-Fencing token
-→ protects against stale ownership
-
-Idempotency
-→ protects business effect from duplicate attempts
+>= parent
 ```
 
 ---
 
-## Retry Policy
+# Local Invariant → Global Root Minimum
 
-Correctly insisted on maintaining a clear scheduler/application boundary.
+An important concern was raised:
 
-### Application/task adapter owns
+> Could a smaller value be hidden somewhere deeper in the tree because heap ordering is only local?
+
+This was resolved through transitivity.
+
+If every edge satisfies:
 
 ```text
-whether a specific failure is retryable
+parent <= child
 ```
 
-Examples may map into generic outcomes:
+then along any root-to-descendant path:
 
 ```text
-SUCCESS
-RETRYABLE_FAILURE
-NON_RETRYABLE_FAILURE
+root <= ... <= descendant
 ```
 
-### Scheduler owns
+Therefore the root is globally minimum even though the rest of the heap is not globally sorted.
+
+Also understood:
+
+> After removing the root, the next-smallest value must be one of the two root children because each child is already the minimum of its subtree.
+
+This was an important conceptual milestone.
+
+---
+
+# Heap Insert — Sift Up
+
+Correct model established:
 
 ```text
-attemptCount
-maxAttempts
-backoff
-nextAttemptAt
-terminal FAILED transition
+append at next free array index
+↓
+compare with parent
+↓
+if child < parent:
+    swap
+↓
+continue upward
+↓
+stop when invariant holds
 ```
 
-Possible fields:
+Insertion does not search for the globally smallest element.
+
+Only the newly inserted node's ancestor path can violate the invariant.
+
+Example insertion of `2` into:
 
 ```text
-attemptCount
-maxAttempts
-nextAttemptAt
-lastFailureReason
+[1,4,3,10,8,7,6]
 ```
 
-Important reasoning:
-
-> The scheduler should not embed domain-specific HTTP/business semantics, but it should provide generic retry machinery so every caller does not reinvent orchestration.
-
-Retries stop when:
+was walked through:
 
 ```text
-non-retryable failure
-or
-maxAttempts exhausted
+append at index 7
+
+2 < 10
+→ swap
+
+2 < 4
+→ swap
+
+2 >= 1
+→ stop
+```
+
+Final:
+
+```text
+[1,2,3,4,8,7,6,10]
+```
+
+Complexity:
+
+```text
+O(log n)
 ```
 
 ---
 
-## Cancellation Policy
+# Heap Poll — Sift Down
 
-A deliberate V1 boundary was chosen:
-
-```text
-SCHEDULED → cancellable
-RUNNING   → not cancellable
-```
-
-Reasoning:
-
-Once a job is RUNNING, the scheduler may not know whether execution is:
+Correct model established:
 
 ```text
-1% complete
-99% complete
-blocked
-already side-effected but not yet acknowledged
+save root
+↓
+move last element to root
+↓
+remove last slot
+↓
+compare moved element with children
+↓
+swap with smaller child
+↓
+continue downward
 ```
 
-Therefore V1 avoids pretending arbitrary running work can be safely stopped.
+Important correction:
 
-Cancellation must be atomic:
+Heap removal does not rebalance the entire heap.
+
+Only one root-to-leaf path needs repair.
+
+Therefore:
 
 ```text
-SCHEDULED → CANCELLED
+poll
+→ O(log n)
 ```
 
-If worker claim and cancellation race, only one conditional state transition should win.
+rather than `O(n)`.
+
+Correctly understood that choosing the smaller child is necessary to restore:
+
+```text
+parent <= both children
+```
 
 ---
 
-## Durable Data Model
+# IntMinHeap Engineering Lab
 
-By the end of the design, the job record conceptually included:
+A working `IntMinHeap` was implemented using:
+
+```java
+ArrayList<Integer>
+```
+
+backing storage.
+
+### Demonstrated API
+
+```java
+add(...)
+poll()
+peek()
+size()
+isEmpty()
+```
+
+---
+
+## add()
+
+Implementation correctly used:
 
 ```text
-jobId
-clientId
-idempotencyKey
+append
++
+sift up
+```
 
-taskType
-payload
+with:
 
+```java
+parent = (index - 1) / 2
+```
+
+and termination:
+
+```java
+if (heap.get(parent) <= heap.get(index)) {
+    break;
+}
+```
+
+Status:
+
+```text
+correct
+```
+
+---
+
+## poll()
+
+Implementation correctly used:
+
+```text
+save root
+move last element to root
+remove last slot
+sift down
+```
+
+Smaller-child selection correctly implemented by comparing:
+
+```text
+current
+left
+right
+```
+
+and choosing the smallest index.
+
+Termination:
+
+```java
+if (smallest == index) {
+    break;
+}
+```
+
+correctly means the local heap invariant has been restored.
+
+Status:
+
+```text
+correct
+```
+
+---
+
+## Empty Contract
+
+Initial contract was inconsistent:
+
+```text
+poll()
+→ null
+
+peek()
+→ indirect IndexOutOfBoundsException
+```
+
+This was corrected to explicitly throw:
+
+```java
+NoSuchElementException("Heap is empty")
+```
+
+for empty access.
+
+`peek()` correction demonstrated.
+
+`poll()` was instructed to use the same contract.
+
+---
+
+## Implementation Status
+
+```text
+IntMinHeap             → implemented
+add                    → implemented
+sift up                → implemented
+poll                   → implemented
+sift down              → implemented
+peek                   → implemented
+size                   → implemented
+isEmpty                → implemented
+empty contract         → corrected
+duplicate support      → structurally supported
+```
+
+### Test Status
+
+The required repeated-poll sorted-output test was discussed:
+
+```text
+insert N values
+poll until empty
+→ output must be non-decreasing
+```
+
+but actual test execution/output was not demonstrated during the session.
+
+Therefore:
+
+```text
+implementation complete
+tests passing → not yet evidenced in session
+```
+
+---
+
+# Java PriorityQueue
+
+Correctly connected:
+
+```java
+PriorityQueue<Integer>
+```
+
+with:
+
+```text
+min-priority behavior under natural Integer ordering
+```
+
+Important distinction retained:
+
+```text
+Queue
+→ FIFO
+
+PriorityQueue
+→ priority-based removal
+```
+
+PriorityQueue behavior now maps directly to the manually implemented heap mechanics rather than being treated as an opaque Java collection.
+
+---
+
+# Comparable vs Comparator
+
+Initial recall:
+
+```text
+Comparator
+→ functional interface
+```
+
+was correct, but the full distinction required reinforcement.
+
+Final model established:
+
+```text
+Comparable
+→ ordering belongs to the type
+→ natural/default ordering
+→ compareTo(...)
+
+Comparator
+→ external/use-case-specific ordering
+→ compare(...)
+→ multiple legitimate orderings possible
+```
+
+For scheduler jobs:
+
+```text
 scheduledAt
-status
-
-attemptCount
-maxAttempts
-nextAttemptAt
-
-leaseOwner
-leaseUntil
-fencingToken
-
+priority
 createdAt
-updatedAt
-lastFailureReason
+jobId
 ```
 
-Not every field is mandatory in every implementation, but each discussed field maps to a specific correctness or operational requirement.
+may all provide meaningful orderings.
+
+Therefore scheduler priority is better represented using an external:
+
+```text
+Comparator<Job>
+```
+
+unless one ordering is truly universal for the domain type.
+
+Initial preference for `Comparable` in the scheduler example was corrected.
 
 ---
 
-## Observability
+# Production Connection — Heap + Scheduler
 
-Relevant scheduler metrics:
+Strong connection made to Day-15 Job Scheduler.
+
+Correctly rejected:
 
 ```text
-scheduled count
-runnable backlog
-oldest runnable age
-RUNNING count
-success rate
-failure rate
-retry rate
-lease expirations
-task execution latency
-schedule delay
-worker utilization
-claim conflicts
+load all 5 million future jobs
+into one process heap
 ```
 
-Important derived metric:
+User independently proposed bounded retrieval such as:
 
 ```text
-scheduleDelay
+take first N
+process/refill
+```
+
+This was refined into:
+
+```text
+durable DB
 =
-actualStartTime - scheduledAt
+source of truth
+
+scheduler:
+query near-term jobs
+ORDER BY scheduledAt
+LIMIT batchSize
+↓
+put bounded subset into local heap
+↓
+refill periodically / as capacity becomes available
 ```
 
-Useful dimensions:
+Important production boundary understood:
 
 ```text
-taskType
-workerId
-attempt
-downstream dependency
-fencingToken
-failure reason
+heap
+→ local ordering optimization
+
+DB
+→ durability / correctness
 ```
+
+A scheduler must remain correct after process restart.
 
 ---
 
-## Production Failure Drill
+# Burst / Backpressure Reasoning
 
 Scenario:
 
 ```text
-RUNNING ↑
-SUCCEEDED ↓
-oldest runnable age ↑
-lease expirations ↑
-
-CPU normal
-DB latency normal
+100,000 jobs
+scheduled for same second
 ```
 
-### Hypothesis 1 — Lease Duration Too Short / Lease Renewal Failure
-
-User correctly correlated increasing RUNNING jobs and lease expirations with possible lease-policy problems.
-
-Evidence needed:
+User independently identified:
 
 ```text
-task execution P50/P95/P99
-vs
-lease duration
-
-lease-renewal success/failure
+memory pressure
+tie-breaking / equal priority question
 ```
 
-Important discipline:
-
-Do not immediately increase lease duration.
-
-If workers are actually dead, a longer lease simply delays recovery.
-
-### Hypothesis 2 — Downstream Dependency Slowdown
-
-Correctly identified that:
+The more important system-level issue was then introduced:
 
 ```text
-CPU normal
-DB normal
+burst execution pressure
 ```
 
-can coexist with workers blocked on external I/O.
-
-Evidence:
+Potential overload targets:
 
 ```text
-latency/error rate by downstream dependency
-task duration by taskType
-thread states
-timeouts
+worker pool
+DB connections
+downstream APIs
+queues
+retry system
 ```
 
-A downstream outage may not be owned by the scheduler team, but the scheduler must still handle it safely through:
+Correct production distinction established:
 
 ```text
-timeouts
-retry/backoff
-telemetry
-bounded execution
+priority
+→ which eligible job executes next
+
+backpressure / bounded concurrency
+→ how many may execute at once
 ```
 
-### Hypothesis 3 — Worker Saturation / Thread Starvation
-
-Increasing worker count was proposed as a possible mitigation, but refined to require evidence first.
-
-Evidence:
+Recommended architecture:
 
 ```text
-activeWorkers / maxWorkers
+durable DB
+↓
+bounded batch claim
+↓
+local priority queue
+↓
+bounded worker pool
+↓
+execution
+```
+
+Important insight:
+
+> Being due means a job becomes eligible for execution. It does not imply that 100,000 jobs must begin in the same millisecond.
+
+Relevant metrics carried forward:
+
+```text
+runnable backlog
+oldest runnable age
+worker utilization
 queue depth
-thread dumps
-jobs exceeding expected duration
-```
-
-Important caution:
-
-```text
-more workers
-+
-slow downstream
-→ may amplify the incident
-```
-
-Therefore capacity should be increased only after identifying where the bottleneck actually sits.
-
-### Debugging Discipline
-
-Strong improvement demonstrated:
-
-```text
-Observation
-↓
-Hypothesis
-↓
-Supporting evidence
-↓
-Rejecting evidence
-↓
-Mitigation
-```
-
-Correlation was correctly treated as a hypothesis generator, not proof of root cause.
-
----
-
-## Day 15 Assessment
-
-### Strong
-
-* BST deletion recursive-return contract
-* BST two-child deletion implementation
-* AVL motivation and balance-factor reasoning
-* understanding that rotation preserves inorder
-* T2/middle-subtree reasoning
-* distinction between structural rotation and height bookkeeping
-* one-time scheduler requirements
-* durable acceptance
-* create API idempotency
-* indexed runnable-job access pattern
-* contention awareness
-* atomic claim reasoning
-* lease semantics
-* stale-worker reasoning
-* fencing-token intuition
-* at-least-once vs exactly-once distinction
-* downstream idempotency boundary
-* retry ownership split between scheduler and task implementation
-* cancellation-state boundary
-* dispatcher/queue trade-off reasoning
-* production-debugging discipline
-
-### Needs Reinforcement
-
-AVL coding fluency:
-
-```text
-rotateLeft
-rotateRight
-height updates
-full AVL insert
-rotation test cases
-```
-
-This is intentionally lower priority and should be revisited through spaced retrieval rather than blocking progress.
-
-Also worth revisiting later:
-
-```text
-BST mutation test suite
-scheduler DB/queue dual-write patterns such as outbox
-large-scale scheduler partitioning only when scale requires it
+execution latency
+claim latency
+retry/failure rate
 ```
 
 ---
 
-## Exact Day 16 Starting Direction
+# Day 16 Assessment
 
-Proceed to:
+## Strong
+
+* array/hash retrieval
+* membership vs frequency distinction
+* array locality / CPU cache reasoning
+* Subarray Sum Equals K abstraction
+* lower-bound binary-search reasoning
+* binary-search monotonic-predicate abstraction
+* sliding-window monotonicity reasoning
+* BFS / FIFO reasoning
+* LRU map + DLL invariant
+* BST global invariant
+* ancestor-bound validation
+* AVL motivation
+* two-pointer monotonic-elimination abstraction
+* Container With Most Water implementation
+* 3Sum O(n³) → O(n²) reduction
+* heap-vs-array trade-off reasoning
+* heap-vs-BST trade-off reasoning
+* complete-tree array representation
+* heap parent/child formulas
+* local heap invariant
+* local-invariant-to-global-min reasoning
+* sift-up reasoning
+* sift-down reasoning
+* `IntMinHeap` implementation
+* heap vs durable scheduler-state boundary
+* bounded near-term loading intuition
+
+---
+
+## Needs Reinforcement
+
+### Prefix Sum / Modulo
+
+Revisit:
 
 ```text
-Red-Black Tree intuition / TreeMap internals
-+
-binary heap / PriorityQueue foundations
-+
-tree DSA transfer
-+
-short production-debugging block
+Java negative remainder
+modulo equivalence classes
+Math.floorMod
+why abs(remainder) is incorrect
 ```
 
-Start with the conceptual bridge:
+### Two-Pointer Proof Discipline
 
-> AVL and Red-Black trees both preserve logarithmic height, but they make different trade-offs in how strictly they balance the tree.
+For problems such as:
 
-Then move quickly into heaps/PriorityQueue, which has higher direct interview ROI.
+```text
+Two Sum II
+Container With Most Water
+```
+
+pointer movement was sometimes recognized before the elimination proof was articulated.
+
+Continue forcing the structure:
+
+```text
+Because ______,
+I know ______.
+Therefore discarding ______ is safe.
+```
+
+### 3Sum Duplicate Handling
+
+Current implementation uses:
+
+```text
+HashSet
+```
+
+successfully for deduplication.
+
+Still reinforce pointer-level duplicate skipping:
+
+```text
+skip duplicate i
+skip duplicate left
+skip duplicate right
+```
+
+### Heap Testing
+
+Implementation exists, but actual test evidence should still be produced:
+
+```text
+ascending inserts
+descending inserts
+random inserts
+duplicates
+repeated poll sorted-output
+empty peek
+empty poll
+size correctness
+```
+
+### Comparable vs Comparator
+
+Concept understood after correction.
+
+Needs one spaced-retrieval check to ensure:
+
+```text
+natural ordering
+vs
+use-case-specific ordering
+```
+
+is automatic.
+
+### Backpressure
+
+Heap-memory concerns were identified independently.
+
+System-wide burst/backpressure reasoning required prompting.
+
+Reinforce distinction:
+
+```text
+ordering problem
+!=
+capacity-control problem
+```
+
+---
+
+# Deferred
+
+Intentionally deferred:
+
+```text
+Red-Black insertion/fixup
+Red-Black deletion
+TreeMap implementation deep dive
+AVL implementation completion
+bottom-up heapify O(n) proof
+heap sort
+Merge K Sorted Lists
+full graph curriculum
+```
+
+These are not blocking Day-16 completion.
+
+---
+
+# Exact Day 17 Starting Direction
+
+Proceed with:
+
+```text
+LeetCode:
+Sliding Window transfer problems
+
++
+
+Heap transfer:
+Kth Largest
+Top K Frequent
+
++
+
+Trie foundations
+
++
+
+Java/JVM execution block
+```
+
+## Exact Starting Action
+
+Start Day 17 with a short heap retrieval:
+
+> You receive a stream of numbers and must continuously know the kth largest value seen so far. Why is a heap useful, and should it be a min-heap or max-heap?
+
+Require derivation before implementation.
+
+Then move into:
+
+```text
+Kth Largest
+→ bounded heap reasoning
+```
+
+followed by:
+
+```text
+Top K Frequent
+→ frequency map + heap
+```
+
+This deliberately combines previously learned:
+
+```text
+HashMap frequencies
++
+heap priority
+```
+
+and should expose whether heap understanding transfers beyond direct `peekMin()` / `poll()` mechanics.
