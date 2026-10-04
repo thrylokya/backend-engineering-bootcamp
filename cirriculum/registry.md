@@ -1,1717 +1,1043 @@
-# Day 16 — Weekend Consolidation, Two Pointers & Binary Heap Foundations
+# Backend Engineering Bootcamp Registry — Day 17 Update
 
-## Status
+# Current Position
 
-**Completed**
-
-Day 16 completed the weekend cumulative-retrieval block, established two-pointer elimination reasoning through Two Sum II, Container With Most Water, and 3Sum, and introduced binary heaps from first principles through a working `IntMinHeap` implementation.
-
-Red-Black Tree / TreeMap internals were intentionally deprioritized because their immediate interview ROI is lower than heaps, graphs, JVM, databases, concurrency, and system design.
-
-The strongest new Phase-2 result is that heap mechanics were derived rather than memorized:
-
-```text
-complete binary tree
-+
-local heap-order invariant
-+
-array representation
-+
-sift up / sift down
-```
+- **Curriculum:** Day 17 — Heap Transfer, Sliding Window LeetCode, Trie Foundations & JVM Execution
+- **Status:** Completed
+- **Phase:** Phase 2 — Trees, Heaps, Graphs, Collections & JVM Execution
+- **Primary Language:** Java
+- **Next Direction:** Day 18 — mixed algorithm transfer + Graph foundations + JVM continuation
 
 ---
 
-## Phase
+# Day 17 — Evidence & Progress
 
-Phase 2 — Trees, Heaps, Graphs, Collections & JVM Execution
+## 1. Heap Retrieval
 
----
+### Heap invariant
+- [x] Understood that a heap is not globally sorted.
+- [x] Understood that a min-heap exposes the minimum retained candidate at the root.
+- [x] Used heap as a bounded candidate-set structure rather than only as a `peek()/poll()` API.
 
-# Weekend Cumulative Revival
+### Comparable vs Comparator
+- [x] Demonstrated understanding that `PriorityQueue` uses natural ordering by default.
+- [x] Understood that a custom `Comparator` changes the definition of priority.
+- [x] Used a frequency-based comparator for Top K Frequent Elements.
+- [ ] Direct `Comparable` vs `Comparator` retrieval was not explicitly tested today.
 
-## Arrays / Hashing
-
-### Two Sum
-
-Correctly retrieved the complement-lookup abstraction:
-
-```text
-current value = x
-
-needed value
-=
-target - x
-```
-
-Rather than comparing every pair:
-
-```text
-for each x
-→ ask whether target - x has already been seen
-```
-
-Complexity understood:
-
-```text
-brute force
-→ O(n²)
-
-HashMap / HashSet
-→ expected O(n)
-```
-
-Also understood the distinction between:
-
-```text
-HashSet
-→ membership
-
-frequency map
-→ membership + count
-```
-
-and correctly identified that frequency information is required when duplicate occurrences contribute independently to the answer.
-
-### HashMap Complexity
-
-Correctly recalled:
-
-```text
-expected lookup → O(1)
-```
-
-and identified pathological collision behavior as the reason lookup can degrade.
-
-Java-specific treeified-bucket behavior was discussed as an implementation nuance.
-
-### Array Locality
-
-Strong retrieval.
-
-Correctly connected:
-
-```text
-array
-→ contiguous memory
-→ spatial locality
-→ cache-line utilization
-→ CPU prefetch friendliness
-```
-
-versus:
-
-```text
-linked structure
-→ pointer chasing
-→ nodes may be scattered
-→ increased cache misses
-```
-
-Also correctly distinguished:
-
-```text
-array index access → O(1)
-linked-list nth access → O(n)
-```
-
-from the separate hardware-locality advantage during traversal.
+### Modulo / `floorMod`
+- [ ] Not retrieved during this session.
+- [ ] Revisit briefly in next retrieval block.
 
 ---
 
-# Prefix Sum Revival
+# 2. Kth Largest Element in a Stream — LeetCode 703
 
-## Subarray Sum Equals K
+## Abstraction
 
-Correctly recalled the basic relationship:
+Initial reasoning correctly identified:
 
 ```text
-currentPrefix - earlierPrefix = k
-
-therefore:
-
-earlierPrefix = currentPrefix - k
+Only the largest k values need to remain in memory.
 ```
 
-Understood that the algorithm can run as a single left-to-right traversal.
-
-Important frequency insight retrieved:
+Then derived:
 
 ```text
-if the required earlier prefix occurred N times
-→ there are N valid subarrays ending at the current position
+Among the retained top-k values,
+the kth largest is the smallest.
 ```
 
 Therefore:
 
 ```text
-frequency map
+min-heap of size k
 ```
 
-is required rather than simple membership.
-
-Correctly understood initialization:
+## Invariant
 
 ```text
-0 → 1
+After processing each value,
+the heap contains the largest k values seen so far,
+or all values if fewer than k have been seen.
 ```
 
-as representing the empty prefix before index `0`.
+## Safe elimination
 
----
-
-## Subarrays Divisible by K
-
-The pattern was recognized, but the modulo derivation initially required reinforcement.
-
-Correct derivation established:
+Correctly understood:
 
 ```text
-(prefix[i] - prefix[j]) % k == 0
-
-iff
-
-prefix[i] % k == prefix[j] % k
+When there are k + 1 candidates,
+the smallest candidate cannot belong to the largest k.
 ```
 
-Reason:
+Therefore removing the heap root is safe.
+
+## Implementation evidence
+
+Initial implementation used:
 
 ```text
-prefix[i] = a*k + r1
-prefix[j] = b*k + r2
-
-difference
-=
-(a-b)k + (r1-r2)
-
-for difference to be divisible by k:
-r1 = r2
-```
-
-Correctly retained:
-
-```text
-0 → 1
-```
-
-for the empty-prefix remainder.
-
-### Java Negative Remainders
-
-This was the weakest revived Prefix Sum detail.
-
-Initial reasoning incorrectly treated Java negative modulo as if it were already normalized.
-
-Correct behavior established:
-
-```java
--1 % 5 == -1
-```
-
-Normalization:
-
-```java
-((prefixSum % k) + k) % k
-```
-
-or preferably:
-
-```java
-Math.floorMod(prefixSum, k)
-```
-
-Important correction:
-
-```text
-do NOT use abs(remainder)
-```
-
-because absolute value can map values into the wrong equivalence class.
-
-### Prefix-Sum Revival Assessment
-
-```text
-core abstraction       → strong
-frequency reasoning    → strong
-empty-prefix reasoning → strong
-modulo derivation      → needs spaced reinforcement
-negative remainder     → needs spaced reinforcement
-```
-
----
-
-# Binary Search Revival
-
-Correctly distinguished:
-
-```text
-exact search
-→ find any matching value
-
-lower bound
-→ first index with nums[i] >= target
-```
-
-For:
-
-```text
-[1,3,3,3,7]
-```
-
-and target `3`:
-
-```text
-exact search
-→ may return any of indices 1,2,3
-
-lower bound
-→ must return index 1
-```
-
-### Candidate Preservation
-
-Correctly reasoned that:
-
-```text
-nums[mid] >= target
-```
-
-means `mid` is already a valid lower-bound candidate.
-
-Therefore:
-
-```java
-right = mid;
-```
-
-is required rather than:
-
-```java
-right = mid - 1;
-```
-
-because `mid` itself may be the answer.
-
-### General Binary-Search Abstraction
-
-Initially answered:
-
-```text
-array must be sorted
-```
-
-then generalized correctly to:
-
-```text
-monotonic predicate / ordered eliminability
-```
-
-Example lower-bound predicate:
-
-```text
-false false false true true true
-```
-
-Binary search works because one observation allows an entire region to be discarded safely.
-
-Binary-search revival status:
-
-```text
-strong
-```
-
----
-
-# Sliding Window Revival
-
-Strong retrieval.
-
-Correctly identified why positive-only sum windows support pointer movement:
-
-```text
-move right
-→ sum cannot decrease
-
-move left
-→ sum cannot increase
-```
-
-For minimum-length subarray with:
-
-```text
-sum >= target
-```
-
-correct invariant:
-
-```text
-while current window remains valid:
-    record answer
-    shrink from left
-```
-
-Correctly identified why negative numbers break the argument:
-
-```text
-window sum is no longer monotonic
-```
-
-and why divisibility is not monotonic:
-
-```text
-(sum + x) % k
-```
-
-can move arbitrarily among remainder classes.
-
-Sliding-window revival status:
-
-```text
-strong
-```
-
----
-
-# Stack / Queue / LRU Revival
-
-## BFS
-
-Correctly identified FIFO as necessary for preserving level-order processing.
-
-Refinement established:
-
-```text
-FIFO
-→ nodes already discovered at current depth
-   execute before newly discovered deeper nodes
-```
-
-Using a stack instead naturally changes the traversal toward DFS.
-
-## LRU
-
-Correctly explained why:
-
-```java
-get(key)
-```
-
-is logically a mutation:
-
-```text
-successful access
-→ entry becomes most recently used
-→ move node in DLL
-```
-
-Correctly retained the dual-structure responsibility:
-
-```text
-HashMap
-→ key → node lookup
-
-DLL
-→ recency ordering
-```
-
-and the consistency invariant:
-
-```text
-map entries
-==
-DLL logical cache entries
-```
-
-A map-only entry would be retrievable but not correctly represented in recency/eviction state.
-
-A DLL-only entry would become an unreachable ghost entry.
-
-LRU revival status:
-
-```text
-strong
-```
-
----
-
-# Tree / BST / AVL Revival
-
-## Binary Tree vs BST
-
-Correctly stated:
-
-```text
-binary tree
-→ at most two children
-
-BST
-→ binary tree + ordering invariant
-```
-
-Refinement reinforced:
-
-```text
-all values in left subtree < node
-all values in right subtree > node
-```
-
-not merely immediate-child comparison.
-
-## Validate BST
-
-Correctly explained why parent-only comparison is insufficient.
-
-Ancestor constraints must be propagated:
-
-```text
-root
-→ (-∞, +∞)
-
-left
-→ (lower, root.value)
-
-right
-→ (root.value, upper)
-```
-
-## BST Complexity
-
-Correctly explained:
-
-```text
-BST search = O(h)
-```
-
-because ordinary BSTs may become skewed.
-
-```text
-balanced tree
-h = O(log n)
-
-skewed tree
-h = O(n)
-```
-
-Minor terminology correction:
-
-```text
-skewed BST
-```
-
-rather than skewed AVL.
-
-## AVL
-
-Correctly retained:
-
-```text
-balanceFactor
-=
-height(left) - height(right)
-```
-
-with:
-
-```text
--1, 0, +1
-```
-
-allowed.
-
-Correctly understood that rotations must preserve:
-
-```text
-BST ordering
+array of size k
 +
-AVL balance
-```
-
-Tree revival status:
-
-```text
-strong
-```
-
----
-
-# Two-Pointer Interview Track
-
-## Core Abstraction
-
-Correctly generalized two pointers beyond having two variables.
-
-Required property:
-
-```text
-ordering / monotonicity
+PriorityQueue
 +
-safe elimination
+heap reconstruction
 ```
 
-A pointer may move only when doing so provably discards states that cannot contain the required answer.
+Issues discovered:
 
----
+- array was not actually maintained in sorted order;
+- default zero values could pollute the heap;
+- heap was unnecessarily rebuilt;
+- duplicated state existed between array and heap.
 
-# Two Sum II
-
-Given sorted data:
+Improved abstraction:
 
 ```text
-numbers[left] + numbers[right]
+The heap itself is sufficient state.
 ```
 
-correct pointer movement retained:
-
-```text
-sum < target
-→ left++
-
-sum > target
-→ right--
-```
-
-Pointer-elimination proof initially needed prompting, then was understood.
-
-For:
-
-```text
-sum < target
-```
-
-because every smaller right value is:
-
-```text
-<= current right
-```
-
-every pair using the current left remains:
-
-```text
-<= current sum < target
-```
-
-therefore current `left` can be discarded safely.
-
-Symmetric argument applies for `sum > target`.
-
-Complexity:
-
-```text
-Time  → O(n)
-Space → O(1)
-```
-
-Status:
-
-```text
-solution mechanics          → strong
-elimination proof           → understood after prompting
-```
-
----
-
-# Container With Most Water
-
-## Formula
-
-Derived:
-
-```text
-width
-=
-right - left
-
-usableHeight
-=
-min(height[left], height[right])
-
-area
-=
-width * usableHeight
-```
-
-Initially expected height behavior to provide monotonicity.
-
-Important correction established:
-
-> Heights themselves need not be monotonic.
-
-The elimination proof instead uses the limiting wall.
-
-If:
-
-```text
-height[left] < height[right]
-```
-
-then current area is limited by `height[left]`.
-
-Keeping the same left while moving right inward gives:
-
-```text
-smaller width
-+
-height still <= height[left]
-```
-
-so no improved solution can retain that left boundary.
-
-Therefore:
-
-```text
-left++
-```
-
-is safe.
-
-Key understanding:
-
-> Moving the shorter wall does not guarantee improvement. It is simply the only move that still has a chance of improvement.
-
-### Implementation Demonstrated
+Canonical operation:
 
 ```java
-public static int maxArea(int[] heightArray) {
-    int leftIndex = 0;
-    int rightIndex = heightArray.length - 1;
-    int maxArea = 0;
+heap.offer(value);
 
-    while (rightIndex > leftIndex) {
-        int height =
-            Math.min(
-                heightArray[rightIndex],
-                heightArray[leftIndex]
-            );
-
-        int width = rightIndex - leftIndex;
-
-        int area = width * height;
-
-        maxArea = Math.max(area, maxArea);
-
-        if (heightArray[rightIndex] > heightArray[leftIndex]) {
-            leftIndex++;
-        } else {
-            rightIndex--;
-        }
-    }
-
-    return maxArea;
+if (heap.size() > k) {
+    heap.poll();
 }
 ```
 
-Complexity:
+## Complexity
 
 ```text
-Time  → O(n)
-Space → O(1)
+per update → O(log k)
+peek       → O(1)
+space      → O(k)
 ```
 
-Equal-height case understood:
+### Status
 
-```text
-either pointer may move
-```
-
-Status:
-
-```text
-implementation       → correct
-pointer mechanics    → correct
-elimination proof    → required prompting, then understood
-```
+- [x] top-k state derived
+- [x] min-heap reasoning
+- [x] invariant understood
+- [x] safe-elimination reasoning
+- [x] complexity understood
+- [x] redundant array state identified
+- [ ] Full LeetCode stream class was not independently reimplemented after correction
 
 ---
 
-# 3Sum
+# 3. Top K Frequent Elements — LeetCode 347
 
-## Reduction
+## Abstraction
+
+Correctly independently identified composition:
+
+```text
+frequency map
++
+heap
+```
+
+Frequency state:
+
+```text
+value → number of occurrences
+```
+
+Initial solution:
+
+```text
+max-heap containing all distinct elements
+→ poll k times
+```
+
+This was logically correct but used:
+
+```text
+O(m)
+```
+
+heap space where `m` is the number of distinct values.
+
+Then transferred bounded-heap reasoning from Kth Largest:
+
+```text
+min-heap of size k
+ordered by frequency
+```
+
+## Invariant
+
+```text
+After processing each distinct value,
+the heap contains the k highest-frequency candidates seen so far,
+or all candidates if fewer than k have been processed.
+```
+
+## Comparator understanding
+
+Correctly changed from:
+
+```java
+Integer.compare(b.frequency, a.frequency)
+```
+
+for max-frequency-first ordering
+
+to:
+
+```java
+Integer.compare(a.frequency, b.frequency)
+```
+
+for bounded min-heap elimination.
+
+Also identified and understood that:
+
+```java
+priorityQueue.comparator().reversed();
+```
+
+does not mutate an existing `PriorityQueue`.
+
+## Tie reasoning
+
+Asked an important edge case:
+
+```text
+k = 1
+all elements have the same frequency
+```
+
+Understood that equal-frequency candidates are tied and that deterministic behavior requires an explicit secondary comparator if the specification demands one.
+
+## Complexity
+
+Let:
+
+```text
+n = total elements
+m = distinct elements
+```
+
+Then:
+
+```text
+frequency map    → O(n)
+bounded heap     → O(m log k)
+total            → O(n + m log k)
+space            → O(m + k)
+```
+
+### Status
+
+- [x] frequency-map abstraction
+- [x] HashMap + heap composition
+- [x] max-heap baseline
+- [x] bounded min-heap optimization
+- [x] comparator reasoning
+- [x] tie behavior considered
+- [x] implementation completed
+
+---
+
+# 4. Sliding Window — Permutation in String
+
+## Derivation
 
 Correctly identified:
 
 ```text
-brute force
-→ O(n³)
+window size = s1.length()
 ```
 
-and then derived:
+because any permutation of `s1` must contain exactly the same number of characters.
+
+State identified:
 
 ```text
-sort
-fix nums[i]
-solve remaining pair using two pointers
+target character frequencies
+current-window character frequencies
 ```
 
-leading to:
+Incremental update identified:
 
 ```text
-O(n²)
+one outgoing character is removed
+one incoming character is added
 ```
 
-Target complexity correctly understood as the expected interview solution.
-
-Sorting enables:
+## Invariant
 
 ```text
-directional elimination
+At every comparison point,
+the window-frequency state represents exactly
+s1.length() consecutive characters from s2.
 ```
 
-because increasing `left` cannot reduce the value and decreasing `right` cannot increase it.
+## Initial implementation issues
 
----
+The first implementation exposed several useful precision gaps:
 
-## Initial Implementation Issue
-
-Initial version failed to reset:
-
-```text
-rightPointer
-```
-
-for each fixed `i`.
-
-This was identified and corrected.
-
----
-
-## Duplicate Handling
-
-Pointer-level duplicate skipping was discussed:
-
-```text
-skip duplicate nums[i]
-
-after finding triplet:
-    move left
-    move right
-    skip equal left values
-    skip equal right values
-```
-
-Final user implementation instead used:
+1. Used:
 
 ```java
-Set<ArrayList<Integer>>
+map.size()
 ```
 
-to deduplicate generated triplets.
+as window length.
 
-This is functionally valid.
+But:
 
-Pointer-level duplicate prevention was understood but not implemented.
+```text
+Map.size() = number of distinct characters
+```
 
-### Final Demonstrated Approach
+not total characters.
+
+2. Initially failed to compare the final possible window.
+
+3. Later version could call:
 
 ```java
-public static Set findPairs(int nums[]) {
-    Set<ArrayList<Integer>> pairs = new HashSet<>();
-
-    Arrays.sort(nums);
-
-    for (int i = 0; i < nums.length; i++) {
-        int candidate = nums[i];
-
-        int leftPointer = i + 1;
-        int rightPointer = nums.length - 1;
-
-        while (rightPointer > leftPointer) {
-            ArrayList<Integer> pair = new ArrayList<>();
-
-            if (nums[leftPointer] + nums[rightPointer]
-                    == candidate * -1) {
-
-                pair.add(candidate);
-                pair.add(nums[leftPointer]);
-                pair.add(nums[rightPointer]);
-
-                pairs.add(pair);
-            }
-
-            if (nums[leftPointer] + nums[rightPointer]
-                    > candidate * -1) {
-                rightPointer--;
-            } else {
-                leftPointer++;
-            }
-        }
-    }
-
-    return pairs;
-}
+s2.charAt(s2.length())
 ```
 
-Additional refinement discussed:
+after checking the final window.
 
-```text
-avoid candidate * -1 overflow edge case
+4. Used:
+
+```java
+Integer != Integer
 ```
 
-by evaluating three-number sum using `long`.
+instead of value equality.
 
-### 3Sum Status
+These were identified and corrected.
 
-```text
-O(n³) brute force             → understood
-O(n²) reduction               → understood
-sort + two pointers           → implemented
-right reset bug               → identified and fixed
-HashSet deduplication         → implemented
-pointer duplicate skipping    → understood, not implemented
-```
+## Current understanding
+
+- [x] fixed-size window derived
+- [x] state identified
+- [x] outgoing/incoming incremental update understood
+- [x] final-window boundary issue understood
+- [x] exact invariant understood
+- [x] Java boxed-equality issue identified
 
 ---
 
-# Red-Black Tree / TreeMap
+# 5. Minimum Window Substring — LeetCode 76 Exposure
 
-Detailed Red-Black Tree material was intentionally deferred.
+Hard decomposition was attempted beyond the minimum Day-17 requirement.
 
-Current retained interview-level knowledge:
+## Variable-window reasoning
+
+Correctly independently reasoned:
 
 ```text
-TreeMap
-→ ordered map
-→ balanced-tree implementation
-→ O(log n) get/put/remove
-→ supports ordered navigation
-   floor / ceiling / ranges
+if window is invalid:
+    expand right
+
+if window is valid:
+    shrink left
 ```
 
-Red-Black insertion/deletion/color-fixup mechanics are intentionally not blocking current progress.
+Useful mental model:
+
+```text
+right → tries to achieve validity
+left  → tries to achieve minimality
+```
+
+## Important distinction learned
+
+For:
+
+```text
+target = "ABC"
+```
+
+validity does NOT mean:
+
+```text
+window frequencies == target frequencies
+```
+
+Instead:
+
+```text
+window[A] >= required[A]
+window[B] >= required[B]
+window[C] >= required[C]
+```
+
+Extra characters and extra copies are allowed.
+
+## Implementation
+
+Implemented a working map-scanning version using:
+
+```text
+target frequency map
+window frequency map
+left/right pointers
+minimum valid window tracking
+```
+
+## Complexity analysis
+
+Initial implementation:
+
+```text
+O(n × d)
+```
+
+where:
+
+```text
+d = number of distinct characters in target
+```
+
+because validity was recomputed by scanning target frequencies.
+
+Worst-case description:
+
+```text
+O(n × m)
+```
+
+where `m = target.length()`.
+
+## Optimization learned
+
+Instead of rescanning target state, maintain:
+
+```text
+required = number of distinct target requirements
+formed   = number currently satisfied
+```
+
+Then validity becomes:
+
+```java
+formed == required
+```
+
+in O(1).
+
+Optimized overall complexity:
+
+```text
+O(n + m)
+```
+
+### Status
+
+- [x] variable-size window derived
+- [x] expand/shrink condition understood
+- [x] coverage vs exact-equality distinction
+- [x] working initial implementation
+- [x] initial complexity derived
+- [x] `formed/required` optimization understood
+- [ ] Optimized `formed/required` implementation not independently rewritten yet
 
 ---
 
-# Binary Heap Foundations
+# 6. Trie Foundations
 
-## Why Heap
+## Mental model
 
-Compared alternatives.
-
-### Unsorted Array
+Understood:
 
 ```text
-add
-→ O(1) amortized
-
-peek/find min
-→ O(n)
-
-remove min
-→ O(n)
+each word = path through the Trie
+common prefixes = shared paths
 ```
-
-### Sorted Array
-
-```text
-peek min
-→ O(1)
-
-insert
-→ O(n)
-```
-
-even when insertion position is found in `O(log n)` because array elements must be shifted.
-
-### Heap
-
-Target operations:
-
-```text
-peek min
-→ O(1)
-
-insert
-→ O(log n)
-
-remove min
-→ O(log n)
-```
-
----
-
-# Heap vs Balanced BST
-
-User independently proposed using a BST for min/max extraction.
-
-Correct trade-off discussion established:
-
-```text
-balanced BST
-→ richer ordering semantics
-→ arbitrary search
-→ predecessor/successor
-→ floor/ceiling
-→ sorted traversal
-
-heap
-→ specialized extreme-priority access
-→ compact array representation
-→ less metadata
-→ better locality
-```
-
-Core distinction retained:
-
-> Balanced BST provides rich global ordering. Heap maintains only enough ordering to expose one extreme efficiently.
-
----
-
-# Binary Heap Representation
-
-Important mental model established:
-
-```text
-Heap
-=
-tree logically
-+
-array physically
-```
-
-A binary heap is a complete binary tree, typically represented level-by-level in an array.
-
-Zero-based index formulas correctly retrieved:
-
-```text
-parent(i)
-=
-(i - 1) / 2
-
-left(i)
-=
-2*i + 1
-
-right(i)
-=
-2*i + 2
-```
-
-Example reasoning for index `1` was correct:
-
-```text
-parent → 0
-left   → 3
-right  → 4
-```
-
----
-
-# Heap Ordering Invariant
-
-For min-heap:
-
-```text
-parent <= children
-```
-
-Important distinction understood:
-
-```text
-heap is NOT globally sorted
-```
-
-Sibling ordering is irrelevant.
 
 Example:
 
 ```text
-        1
-      /   \
-     4     3
+car
+care
 ```
 
-is valid even though:
+share:
 
 ```text
-4 > 3
+c → a → r
 ```
 
-because both children satisfy:
+## Node state
+
+Understood need for:
 
 ```text
->= parent
+children
+isWord
+```
+
+`isWord` distinguishes:
+
+```text
+prefix exists
+```
+
+from:
+
+```text
+complete inserted word exists
+```
+
+Example:
+
+```text
+only "care" inserted
+
+search("car")      → false
+startsWith("car")  → true
 ```
 
 ---
 
-# Local Invariant → Global Root Minimum
+# 7. Trie `insert`
 
-An important concern was raised:
+Implemented Trie insertion iteratively.
 
-> Could a smaller value be hidden somewhere deeper in the tree because heap ordering is only local?
+Several useful bugs were found during development:
 
-This was resolved through transitivity.
+### Bug 1
 
-If every edge satisfies:
+After creating a node, traversal initially did not descend into the newly created node.
+
+### Bug 2
+
+`isWord` was initially set only when a node was created.
+
+This failed for:
 
 ```text
-parent <= child
+insert("care")
+insert("car")
 ```
 
-then along any root-to-descendant path:
+because the `r` node already existed when `"car"` was inserted.
 
-```text
-root <= ... <= descendant
+Final implementation correctly tracks the current node whether existing or newly created and marks:
+
+```java
+node.setWord(true);
 ```
 
-Therefore the root is globally minimum even though the rest of the heap is not globally sorted.
+after full traversal.
 
-Also understood:
-
-> After removing the root, the next-smallest value must be one of the two root children because each child is already the minimum of its subtree.
-
-This was an important conceptual milestone.
-
----
-
-# Heap Insert — Sift Up
-
-Correct model established:
+## Insert invariant
 
 ```text
-append at next free array index
-↓
-compare with parent
-↓
-if child < parent:
-    swap
-↓
-continue upward
-↓
-stop when invariant holds
-```
-
-Insertion does not search for the globally smallest element.
-
-Only the newly inserted node's ancestor path can violate the invariant.
-
-Example insertion of `2` into:
-
-```text
-[1,4,3,10,8,7,6]
-```
-
-was walked through:
-
-```text
-append at index 7
-
-2 < 10
-→ swap
-
-2 < 4
-→ swap
-
-2 >= 1
-→ stop
-```
-
-Final:
-
-```text
-[1,2,3,4,8,7,6,10]
-```
-
-Complexity:
-
-```text
-O(log n)
+After processing character i,
+the current node represents word[0..i].
 ```
 
 ---
 
-# Heap Poll — Sift Down
+# 8. Trie `search`
 
-Correct model established:
+Implemented correctly.
+
+Logic:
 
 ```text
-save root
-↓
-move last element to root
-↓
-remove last slot
-↓
-compare moved element with children
-↓
-swap with smaller child
-↓
-continue downward
+traverse every character
+
+if any path is missing:
+    false
+
+after full traversal:
+    return finalNode.isWord
 ```
 
-Important correction:
+Correct distinction:
 
-Heap removal does not rebalance the entire heap.
+```text
+path existence alone is insufficient for exact search.
+```
 
-Only one root-to-leaf path needs repair.
+---
+
+# 9. Trie `startsWith`
+
+Initially assumed that the final prefix node must have children.
+
+Corrected understanding:
+
+```text
+startsWith(prefix)
+```
+
+only asks:
+
+```text
+Does the complete prefix path exist?
+```
 
 Therefore:
 
 ```text
-poll
-→ O(log n)
+insert("apple")
+
+startsWith("apple") → true
 ```
 
-rather than `O(n)`.
+even if the final `e` node has no children.
 
-Correctly understood that choosing the smaller child is necessary to restore:
+Correct final behavior:
 
 ```text
-parent <= both children
+search()
+→ path exists + final isWord
+
+startsWith()
+→ path exists
 ```
+
+Also correctly reasoned that BFS/DFS would be needed for a different requirement:
+
+```text
+getAllWordsStartingWith(prefix)
+```
+
+but not for boolean `startsWith()`.
 
 ---
 
-# IntMinHeap Engineering Lab
+# 10. Trie Representation Trade-off
 
-A working `IntMinHeap` was implemented using:
+Reviewed two child representations.
 
-```java
-ArrayList<Integer>
+## `HashMap<Character, Node>`
+
+Advantages:
+
+```text
+sparse allocation
+flexible character domain
 ```
 
-backing storage.
+Costs:
 
-### Demonstrated API
-
-```java
-add(...)
-poll()
-peek()
-size()
-isEmpty()
+```text
+hashing overhead
+extra objects / memory overhead
 ```
+
+## `Node[26]`
+
+Useful for:
+
+```text
+lowercase English alphabet only
+```
+
+Advantages:
+
+```text
+direct indexing
+low lookup overhead
+```
+
+Cost:
+
+```text
+unused slots when branching is sparse
+```
+
+## Complexity
+
+For key length `L`:
+
+```text
+insert     → O(L)
+search     → O(L)
+startsWith → O(L)
+```
+
+assuming constant-average child lookup.
+
+### Status
+
+- [x] Trie mental model
+- [x] children + `isWord`
+- [x] insert implemented
+- [x] search implemented
+- [x] startsWith implemented
+- [x] prefix vs exact lookup understood
+- [x] BFS/DFS role for autocomplete clarified
+- [x] array-vs-map trade-off reviewed
 
 ---
 
-## add()
+# 11. JVM — Source to Execution
 
-Implementation correctly used:
+## Correct execution chain
 
-```text
-append
-+
-sift up
-```
-
-with:
-
-```java
-parent = (index - 1) / 2
-```
-
-and termination:
-
-```java
-if (heap.get(parent) <= heap.get(index)) {
-    break;
-}
-```
-
-Status:
+Retrieved:
 
 ```text
-correct
+.java source
+↓
+javac
+↓
+.class bytecode
 ```
 
----
+Initially assumed JVM bytecode was directly understood by the processor.
 
-## poll()
-
-Implementation correctly used:
+Corrected mental model:
 
 ```text
-save root
-move last element to root
-remove last slot
-sift down
-```
-
-Smaller-child selection correctly implemented by comparing:
-
-```text
-current
-left
-right
-```
-
-and choosing the smallest index.
-
-Termination:
-
-```java
-if (smallest == index) {
-    break;
-}
-```
-
-correctly means the local heap invariant has been restored.
-
-Status:
-
-```text
-correct
-```
-
----
-
-## Empty Contract
-
-Initial contract was inconsistent:
-
-```text
-poll()
-→ null
-
-peek()
-→ indirect IndexOutOfBoundsException
-```
-
-This was corrected to explicitly throw:
-
-```java
-NoSuchElementException("Heap is empty")
-```
-
-for empty access.
-
-`peek()` correction demonstrated.
-
-`poll()` was instructed to use the same contract.
-
----
-
-## Implementation Status
-
-```text
-IntMinHeap             → implemented
-add                    → implemented
-sift up                → implemented
-poll                   → implemented
-sift down              → implemented
-peek                   → implemented
-size                   → implemented
-isEmpty                → implemented
-empty contract         → corrected
-duplicate support      → structurally supported
-```
-
-### Test Status
-
-The required repeated-poll sorted-output test was discussed:
-
-```text
-insert N values
-poll until empty
-→ output must be non-decreasing
-```
-
-but actual test execution/output was not demonstrated during the session.
-
-Therefore:
-
-```text
-implementation complete
-tests passing → not yet evidenced in session
-```
-
----
-
-# Java PriorityQueue
-
-Correctly connected:
-
-```java
-PriorityQueue<Integer>
-```
-
-with:
-
-```text
-min-priority behavior under natural Integer ordering
+.java
+↓
+javac
+↓
+.class bytecode
+↓
+class loading
+↓
+JVM execution
+↓
+interpreter / lower-tier execution
+↓
+runtime profiling
+↓
+hot-code detection
+↓
+JIT compilation
+↓
+native machine code
+↓
+CPU
 ```
 
 Important distinction retained:
 
 ```text
-Queue
-→ FIFO
-
-PriorityQueue
-→ priority-based removal
+CPU understands native machine instructions,
+not JVM bytecode.
 ```
 
-PriorityQueue behavior now maps directly to the manually implemented heap mechanics rather than being treated as an opaque Java collection.
+## Portability
+
+Understood that `.class` bytecode is platform-independent while the JVM implementation is platform-specific.
 
 ---
 
-# Comparable vs Comparator
+# 12. Interpreter vs JIT
 
-Initial recall:
+Learned why JVM does not eagerly compile all bytecode to optimized native code.
 
-```text
-Comparator
-→ functional interface
-```
-
-was correct, but the full distinction required reinforcement.
-
-Final model established:
+Reasons:
 
 ```text
-Comparable
-→ ordering belongs to the type
-→ natural/default ordering
-→ compareTo(...)
-
-Comparator
-→ external/use-case-specific ordering
-→ compare(...)
-→ multiple legitimate orderings possible
+JIT compilation itself costs CPU/time
+many methods may never execute
+runtime profiling can identify actually hot paths
 ```
 
-For scheduler jobs:
+Mental model:
 
 ```text
-scheduledAt
-priority
-createdAt
-jobId
+execute
+→ profile
+→ identify hot code
+→ compile optimized native code
 ```
-
-may all provide meaningful orderings.
-
-Therefore scheduler priority is better represented using an external:
-
-```text
-Comparator<Job>
-```
-
-unless one ordering is truly universal for the domain type.
-
-Initial preference for `Comparable` in the scheduler example was corrected.
 
 ---
 
-# Production Connection — Heap + Scheduler
+# 13. JVM Warmup / JMH
 
-Strong connection made to Day-15 Job Scheduler.
+Understood that:
 
-Correctly rejected:
-
-```text
-load all 5 million future jobs
-into one process heap
+```java
+System.nanoTime()
 ```
 
-User independently proposed bounded retrieval such as:
+around one execution is not sufficient evidence of steady-state performance.
+
+First-call latency may include:
 
 ```text
-take first N
-process/refill
+class loading
+static initialization
+lazy initialization
+cache coldness
+JIT activity
+I/O or connection setup
 ```
 
-This was refined into:
+Therefore:
 
 ```text
-durable DB
-=
-source of truth
-
-scheduler:
-query near-term jobs
-ORDER BY scheduledAt
-LIMIT batchSize
-↓
-put bounded subset into local heap
-↓
-refill periodically / as capacity becomes available
+first call slower
 ```
 
-Important production boundary understood:
+does not automatically prove:
 
 ```text
-heap
-→ local ordering optimization
-
-DB
-→ durability / correctness
+JIT caused the difference.
 ```
 
-A scheduler must remain correct after process restart.
+JMH connection reviewed:
+
+```text
+warmup iterations
+measurement iterations
+better microbenchmark isolation
+```
+
+### Status
+
+- [x] source → bytecode understood
+- [x] bytecode vs machine-code distinction corrected
+- [x] interpreter/JIT purpose understood
+- [x] hot-code concept understood
+- [x] warmup significance
+- [x] JMH purpose understood
 
 ---
 
-# Burst / Backpressure Reasoning
+# 14. Production Drill — Ordering vs Capacity
 
 Scenario:
 
 ```text
-100,000 jobs
-scheduled for same second
+incoming rate = 20,000 tasks/sec
+worker capacity = 5,000 tasks/sec
 ```
 
-User independently identified:
+Correctly answered that a better heap / `PriorityQueue` does not solve the system problem.
+
+Backlog growth:
 
 ```text
-memory pressure
-tie-breaking / equal priority question
+20,000 - 5,000
+= 15,000 tasks/sec
 ```
 
-The more important system-level issue was then introduced:
+Key distinction:
 
 ```text
-burst execution pressure
+priority → determines ordering
+
+capacity/backpressure
+→ determines whether the system can keep up
 ```
 
-Potential overload targets:
+Relevant production controls reviewed:
 
 ```text
-worker pool
-DB connections
-downstream APIs
-queues
-retry system
+bounded queues
+backpressure
+load shedding
+capacity scaling
 ```
 
-Correct production distinction established:
+### Retrieval status
 
-```text
-priority
-→ which eligible job executes next
-
-backpressure / bounded concurrency
-→ how many may execute at once
-```
-
-Recommended architecture:
-
-```text
-durable DB
-↓
-bounded batch claim
-↓
-local priority queue
-↓
-bounded worker pool
-↓
-execution
-```
-
-Important insight:
-
-> Being due means a job becomes eligible for execution. It does not imply that 100,000 jobs must begin in the same millisecond.
-
-Relevant metrics carried forward:
-
-```text
-runnable backlog
-oldest runnable age
-worker utilization
-queue depth
-execution latency
-claim latency
-retry/failure rate
-```
+- [x] correctly rejected heap as the solution
+- [ ] Full backpressure explanation should be retrieved once without prompting
 
 ---
 
-# Day 16 Assessment
+# Day 17 Observed Strengths
 
-## Strong
+1. Increasing ability to derive structures rather than immediately pattern-match.
+2. Strong transfer from Kth Largest to Top K Frequent.
+3. Good instinct for challenging edge cases, especially ties.
+4. Variable sliding-window reasoning was derived with limited prompting.
+5. Trie mental model was absorbed quickly after implementation feedback.
+6. Comfortable composing structures such as:
 
-* array/hash retrieval
-* membership vs frequency distinction
-* array locality / CPU cache reasoning
-* Subarray Sum Equals K abstraction
-* lower-bound binary-search reasoning
-* binary-search monotonic-predicate abstraction
-* sliding-window monotonicity reasoning
-* BFS / FIFO reasoning
-* LRU map + DLL invariant
-* BST global invariant
-* ancestor-bound validation
-* AVL motivation
-* two-pointer monotonic-elimination abstraction
-* Container With Most Water implementation
-* 3Sum O(n³) → O(n²) reduction
-* heap-vs-array trade-off reasoning
-* heap-vs-BST trade-off reasoning
-* complete-tree array representation
-* heap parent/child formulas
-* local heap invariant
-* local-invariant-to-global-min reasoning
-* sift-up reasoning
-* sift-down reasoning
-* `IntMinHeap` implementation
-* heap vs durable scheduler-state boundary
-* bounded near-term loading intuition
+```text
+HashMap + Heap
+```
+
+7. Increasing awareness of invariants and incremental state maintenance.
 
 ---
 
-## Needs Reinforcement
+# Day 17 Growth Areas
 
-### Prefix Sum / Modulo
+## 1. Implementation precision
 
-Revisit:
+Conceptual approach is frequently correct before implementation.
+
+Current recurring bugs involve:
 
 ```text
-Java negative remainder
-modulo equivalence classes
-Math.floorMod
-why abs(remainder) is incorrect
+loop boundaries
+last-window handling
+state meaning
+boxed equality
+tracking current object/node
 ```
 
-### Two-Pointer Proof Discipline
-
-For problems such as:
+Required pre-code checklist:
 
 ```text
-Two Sum II
-Container With Most Water
+1. What exactly is my state?
+2. What invariant must remain true?
+3. What changes in one iteration?
+4. What boundary ends the loop?
+5. What input breaks this code?
 ```
 
-pointer movement was sometimes recognized before the elimination proof was articulated.
+## 2. Avoid duplicate state
 
-Continue forcing the structure:
+Example from Kth Largest:
 
 ```text
-Because ______,
-I know ______.
-Therefore discarding ______ is safe.
+array + heap
 ```
 
-### 3Sum Duplicate Handling
+was unnecessary.
 
-Current implementation uses:
+Prefer the smallest state that fully represents the invariant.
+
+## 3. Separate path existence from semantic completion
+
+Trie lesson:
 
 ```text
-HashSet
+path exists
+≠
+word exists
 ```
 
-successfully for deduplication.
+`isWord` carries semantic completion.
 
-Still reinforce pointer-level duplicate skipping:
+## 4. Maintain derived state incrementally
+
+Minimum Window optimization:
 
 ```text
-skip duplicate i
-skip duplicate left
-skip duplicate right
+recompute validity every time
 ```
 
-### Heap Testing
-
-Implementation exists, but actual test evidence should still be produced:
+can often become:
 
 ```text
-ascending inserts
-descending inserts
-random inserts
-duplicates
-repeated poll sorted-output
-empty peek
-empty poll
-size correctness
+update one counter when state changes
 ```
 
-### Comparable vs Comparator
+This is an important transferable optimization pattern.
 
-Concept understood after correction.
+---
 
-Needs one spaced-retrieval check to ensure:
+# Day 17 Deferred / Needs Retrieval
+
+- [ ] Comparable vs Comparator direct retrieval
+- [ ] Java `%` negative-value behavior
+- [ ] `Math.floorMod`
+- [ ] optimized Minimum Window implementation
+- [ ] backpressure explanation without prompting
+
+These should be brief retrieval items, not another full Day-17 session.
+
+---
+
+# Day 17 Exit Assessment
+
+## Heap Transfer
+
+**Passed.**
+
+Current mental model:
 
 ```text
-natural ordering
+heap =
+maintain an extreme over a changing candidate set
+```
+
+not merely:
+
+```text
+peek / poll
+```
+
+## Sliding Window
+
+**Passed conceptually; implementation precision still needs repetition.**
+
+Can derive:
+
+```text
+window size
+state
+incremental update
+validity condition
+```
+
+Fixed and variable windows both understood.
+
+## Trie
+
+**Passed.**
+
+Can explain:
+
+```text
+exact membership
 vs
-use-case-specific ordering
+prefix existence
 ```
 
-is automatic.
+and implement the three fundamental operations.
 
-### Backpressure
+## JVM
 
-Heap-memory concerns were identified independently.
+**Passed at Day-17 depth.**
 
-System-wide burst/backpressure reasoning required prompting.
-
-Reinforce distinction:
+Current model:
 
 ```text
-ordering problem
-!=
-capacity-control problem
+source
+→ bytecode
+→ JVM execution/profile
+→ hot code
+→ JIT
+→ native machine code
 ```
 
 ---
 
-# Deferred
+# Exact Day 18 Starting Action
 
-Intentionally deferred:
+Before new material, do a **10-minute retrieval only**:
 
 ```text
-Red-Black insertion/fixup
-Red-Black deletion
-TreeMap implementation deep dive
-AVL implementation completion
-bottom-up heapify O(n) proof
-heap sort
-Merge K Sorted Lists
-full graph curriculum
+1. State Kth Largest heap invariant.
+2. Explain Comparable vs Comparator.
+3. Explain -1 % 5 in Java and Math.floorMod.
+4. State fixed-window invariant for Permutation in String.
+5. Explain search() vs startsWith() in Trie.
+6. Explain interpreter → profile → JIT.
+7. Explain why PriorityQueue does not solve backpressure.
 ```
 
-These are not blocking Day-16 completion.
-
----
-
-# Exact Day 17 Starting Direction
-
-Proceed with:
+Then begin Day 18 with:
 
 ```text
-LeetCode:
-Sliding Window transfer problems
-
+Mixed / unknown-pattern algorithm transfer
 +
-
-Heap transfer:
-Kth Largest
-Top K Frequent
-
+Graph representation
 +
-
-Trie foundations
-
+BFS / DFS foundations
 +
-
-Java/JVM execution block
+JVM continuation
 ```
 
-## Exact Starting Action
+First graph question:
 
-Start Day 17 with a short heap retrieval:
-
-> You receive a stream of numbers and must continuously know the kth largest value seen so far. Why is a heap useful, and should it be a min-heap or max-heap?
-
-Require derivation before implementation.
-
-Then move into:
-
-```text
-Kth Largest
-→ bounded heap reasoning
-```
-
-followed by:
-
-```text
-Top K Frequent
-→ frequency map + heap
-```
-
-This deliberately combines previously learned:
-
-```text
-HashMap frequencies
-+
-heap priority
-```
-
-and should expose whether heap understanding transfers beyond direct `peekMin()` / `poll()` mechanics.
+> Given a set of services and directed dependencies between them, how would you represent the graph in memory, and what information must each representation preserve?
