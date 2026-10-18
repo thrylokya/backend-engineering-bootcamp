@@ -1,1043 +1,418 @@
-# Backend Engineering Bootcamp Registry — Day 17 Update
+# Backend Engineering Bootcamp Registry
 
-# Current Position
+**Last updated:** 2026-10-18  
+**Primary language:** Java  
+**Target:** Senior / Lead / Staff backend engineering interviews  
+**Phase:** Phase 2 — Trees, Heaps, Graphs, Collections & JVM Execution  
+**Current curriculum:** Day 18 — Graph Foundations, BFS/DFS & JVM Class Initialization  
+**Current status:** IN PROGRESS  
+**Last completed day:** Day 17  
+**Next direction:** Close Day 18 gaps, then start Day 19
 
-- **Curriculum:** Day 17 — Heap Transfer, Sliding Window LeetCode, Trie Foundations & JVM Execution
-- **Status:** Completed
-- **Phase:** Phase 2 — Trees, Heaps, Graphs, Collections & JVM Execution
-- **Primary Language:** Java
-- **Next Direction:** Day 18 — mixed algorithm transfer + Graph foundations + JVM continuation
-
----
-
-# Day 17 — Evidence & Progress
-
-## 1. Heap Retrieval
-
-### Heap invariant
-- [x] Understood that a heap is not globally sorted.
-- [x] Understood that a min-heap exposes the minimum retained candidate at the root.
-- [x] Used heap as a bounded candidate-set structure rather than only as a `peek()/poll()` API.
-
-### Comparable vs Comparator
-- [x] Demonstrated understanding that `PriorityQueue` uses natural ordering by default.
-- [x] Understood that a custom `Comparator` changes the definition of priority.
-- [x] Used a frequency-based comparator for Top K Frequent Elements.
-- [ ] Direct `Comparable` vs `Comparator` retrieval was not explicitly tested today.
-
-### Modulo / `floorMod`
-- [ ] Not retrieved during this session.
-- [ ] Revisit briefly in next retrieval block.
+> This registry records **demonstrated understanding**, not just topics discussed. A concept remains open when implementation, edge-case reasoning, or independent retrieval is incomplete.
+>
+> **Explicit continuity rule (2026-10-18): Do not mark the JVM class-initialization unit complete.** Revisit it in small, spaced challenges until the edge cases are independently explained.
 
 ---
 
-# 2. Kth Largest Element in a Stream — LeetCode 703
+## 1. Current Position at a Glance
 
-## Abstraction
+| Workstream | Status | Evidence / blocker |
+|---|---|---|
+| Day 17 — Heaps, sliding windows, Trie, JVM execution | Completed at Day-17 scope; targeted retrieval outstanding | Day-17 registry has detailed evidence |
+| Day 18 — Search in Rotated Sorted Array (LC 33) | Reviewed; verification pending | Sorted-half/safe-elimination reasoning discussed; independent final test suite not confirmed |
+| Day 18 — Graph representations | Foundations covered | Directed edges, adjacency list/matrix, degrees, sparse-vs-dense trade-offs |
+| Day 18 — BFS / DFS | Foundations covered; practice pending | Queue vs stack/recursion, visited state, shortest unweighted distance, O(V+E) |
+| Day 18 — Number of Islands (LC 200) | IN PROGRESS | Component/DFS idea understood; fix guards/bounds and run tests |
+| Day 18 — JVM loading, linking, initialization | IN PROGRESS | Correct parent/child output trace; nuanced trigger and edge cases not yet mastered |
+| Day 19 | NOT STARTED | Begin after bounded Day-18 close-out; carry JVM revision forward |
 
-Initial reasoning correctly identified:
-
-```text
-Only the largest k values need to remain in memory.
-```
-
-Then derived:
-
-```text
-Among the retained top-k values,
-the kth largest is the smallest.
-```
-
-Therefore:
-
-```text
-min-heap of size k
-```
-
-## Invariant
-
-```text
-After processing each value,
-the heap contains the largest k values seen so far,
-or all values if fewer than k have been seen.
-```
-
-## Safe elimination
-
-Correctly understood:
-
-```text
-When there are k + 1 candidates,
-the smallest candidate cannot belong to the largest k.
-```
-
-Therefore removing the heap root is safe.
-
-## Implementation evidence
-
-Initial implementation used:
-
-```text
-array of size k
-+
-PriorityQueue
-+
-heap reconstruction
-```
-
-Issues discovered:
-
-- array was not actually maintained in sorted order;
-- default zero values could pollute the heap;
-- heap was unnecessarily rebuilt;
-- duplicated state existed between array and heap.
-
-Improved abstraction:
-
-```text
-The heap itself is sufficient state.
-```
-
-Canonical operation:
-
-```java
-heap.offer(value);
-
-if (heap.size() > k) {
-    heap.poll();
-}
-```
-
-## Complexity
-
-```text
-per update → O(log k)
-peek       → O(1)
-space      → O(k)
-```
-
-### Status
-
-- [x] top-k state derived
-- [x] min-heap reasoning
-- [x] invariant understood
-- [x] safe-elimination reasoning
-- [x] complexity understood
-- [x] redundant array state identified
-- [ ] Full LeetCode stream class was not independently reimplemented after correction
+**Important:** Completion of one JVM output-tracing exercise does **not** close the broader JVM topic.
 
 ---
 
-# 3. Top K Frequent Elements — LeetCode 347
+## 2. Day 18 — Evidence and Progress
 
-## Abstraction
+### 2.1 Precision retrieval (from Day 17)
 
-Correctly independently identified composition:
+- [ ] Independently recheck Kth Largest stream invariant.
+- [ ] Directly explain `Comparable` vs `Comparator`.
+- [ ] Explain Java `-1 % 5` and `Math.floorMod(-1, 5)`.
+- [ ] State fixed-window invariant for Permutation in String.
+- [ ] Explain Trie `search()` vs `startsWith()`.
+- [ ] Retrieve the source → bytecode → interpreter/profile → JIT chain.
+- [ ] Explain why `PriorityQueue` fixes ordering, **not** capacity/backpressure.
 
-```text
-frequency map
-+
-heap
-```
+**Status:** Retrieval checklist is not fully verified in the available session record. Do not silently mark these items complete.
 
-Frequency state:
+### 2.2 Mixed algorithm transfer — Search in Rotated Sorted Array (LeetCode 33)
 
-```text
-value → number of occurrences
-```
-
-Initial solution:
+Key model:
 
 ```text
-max-heap containing all distinct elements
-→ poll k times
+The array is not globally sorted.
+At least one half around the midpoint remains sorted
+(under the distinct-values assumption).
 ```
 
-This was logically correct but used:
+Reasoning protocol:
 
 ```text
-O(m)
+1. Identify which half is sorted.
+2. Check whether the target lies inside that half's value range.
+3. Discard only a half proved not to contain the target.
+4. Preserve inclusive/exclusive boundaries correctly.
 ```
 
-heap space where `m` is the number of distinct values.
+- [x] Topic and sorted-half/safe-elimination reasoning discussed.
+- [ ] Independently verify final Java implementation.
+- [ ] Test singleton, missing target, two elements, pivot endpoints and ordinary rotations.
+- [ ] Give a complete correctness and O(log n) time / O(1) space explanation without hints.
 
-Then transferred bounded-heap reasoning from Kth Largest:
+**Status:** Reviewed; do not claim implementation mastery until independent verification.
+
+### 2.3 Graph representations
+
+Covered:
+
+- [x] Vertex/node and directed edge.
+- [x] Adjacency list as `Map<Node, List<Node>>` / `List<List<Integer>>`.
+- [x] Adjacency matrix as a `V × V` structure.
+- [x] List storage: O(V + E).
+- [x] Matrix storage: O(V²).
+- [x] Matrix edge lookup: O(1).
+- [x] Matrix neighbor scan: O(V).
+- [x] Adjacency list neighbor scan: O(out-degree).
+- [x] In-degree vs out-degree.
+- [x] Why sparse, large service-dependency graphs favor adjacency lists.
+- [x] Recognized a directed cycle, e.g. `A → C → D → A`.
+
+**Precision correction to retain:**
 
 ```text
-min-heap of size k
-ordered by frequency
+A directed cycle is not automatically a deadlock.
+Deadlock requires additional resource/wait conditions.
+A dependency cycle may be invalid or dangerous, but is not
+sufficient evidence of a runtime deadlock.
 ```
 
-## Invariant
+- [ ] Independently explain graph cycle vs deadlock in one production example.
+- [ ] Revisit disconnected vertices and traversal across components.
+
+### 2.4 BFS foundations
+
+- [x] FIFO queue defines breadth-first exploration.
+- [x] `visited` is required when graph nodes may be reachable by multiple paths/cycles.
+- [x] Mark visited **when enqueuing** to prevent duplicate entries.
+- [x] BFS finds minimum edge-count distance in an unweighted graph.
+- [x] With adjacency lists, traversal is O(V + E) time; O(V) auxiliary space.
+- [ ] Independently code BFS from a blank editor.
+- [ ] Test a diamond graph where two paths reach the same vertex.
+- [ ] Verify disconnected-graph traversal by starting from each unvisited vertex.
+
+Queue invariant:
 
 ```text
-After processing each distinct value,
-the heap contains the k highest-frequency candidates seen so far,
-or all candidates if fewer than k have been processed.
+Every queued vertex has already been discovered/marked,
+but has not yet been fully processed.
 ```
 
-## Comparator understanding
+### 2.5 DFS foundations
 
-Correctly changed from:
+- [x] Depth-first exploration via recursion or an explicit stack.
+- [x] Backtracking after exploring a path.
+- [x] Need to mark visited to handle cycles.
+- [x] With adjacency lists, O(V + E) traversal time and O(V) auxiliary space.
+- [ ] Independently implement recursive DFS and iterative DFS.
+- [ ] Test directed cycle and disconnected graph.
+- [ ] Explain why DFS does not guarantee shortest unweighted distance.
 
-```java
-Integer.compare(b.frequency, a.frequency)
-```
-
-for max-frequency-first ordering
-
-to:
-
-```java
-Integer.compare(a.frequency, b.frequency)
-```
-
-for bounded min-heap elimination.
-
-Also identified and understood that:
-
-```java
-priorityQueue.comparator().reversed();
-```
-
-does not mutate an existing `PriorityQueue`.
-
-## Tie reasoning
-
-Asked an important edge case:
+Model:
 
 ```text
-k = 1
-all elements have the same frequency
+DFS = go deep, then backtrack.
+BFS = explore in increasing distance from the source.
 ```
 
-Understood that equal-frequency candidates are tied and that deterministic behavior requires an explicit secondary comparator if the specification demands one.
+### 2.6 Graph LeetCode — Number of Islands (LeetCode 200)
 
-## Complexity
-
-Let:
+**Abstraction understood:**
 
 ```text
-n = total elements
-m = distinct elements
+One island = one connected component of land cells
+using four-directional adjacency.
 ```
 
-Then:
+Plan:
 
 ```text
-frequency map    → O(n)
-bounded heap     → O(m log k)
-total            → O(n + m log k)
-space            → O(m + k)
+For every grid cell:
+  if it is unvisited land:
+    islands++
+    traverse all connected land cells
+    mark them visited / mutate them to water
 ```
 
-### Status
+- [x] Connected-component abstraction understood.
+- [x] Outer grid scan + DFS approach discussed.
+- [x] O(R × C) time goal understood.
+- [ ] Fix empty/null grid guard as appropriate to the method contract.
+- [ ] Fix row/column bounds (`>=` upper-bound checks, not just `>`).
+- [ ] Verify visited or in-place mutation is applied exactly once.
+- [ ] Compile and run corrected Java code.
+- [ ] Test empty grid, one land cell, one water cell, separate islands, full-land grid and thin rows/columns.
+- [ ] State worst-case auxiliary space, including the DFS recursion stack: O(R × C).
 
-- [x] frequency-map abstraction
-- [x] HashMap + heap composition
-- [x] max-heap baseline
-- [x] bounded min-heap optimization
-- [x] comparator reasoning
-- [x] tie behavior considered
-- [x] implementation completed
+**Status:** **IN PROGRESS.** A correct idea is not the same as a tested implementation.
 
 ---
 
-# 4. Sliding Window — Permutation in String
+## 3. JVM — Class Loading, Initialization & Inheritance
 
-## Derivation
+**Status:** **IN PROGRESS — explicitly not completed.**
 
-Correctly identified:
+### 3.1 Understanding demonstrated
 
-```text
-window size = s1.length()
-```
+- [x] `.java` source is compiled by `javac` to `.class` bytecode.
+- [x] Bytecode is not CPU-native machine code.
+- [x] Loading, linking and initialization are distinct lifecycle concerns.
+- [x] Linking includes verification, preparation and resolution.
+- [x] Static variables get preparation/default-state treatment before user-written initialization.
+- [x] Static field initializers and static blocks execute in textual order during class initialization.
+- [x] A superclass is initialized before a subclass that requires initialization.
+- [x] Class initialization normally occurs once per class per defining class loader.
+- [x] Object constructors execute for each object construction.
+- [x] Correctly reasoned through a combined parent/child static-initialization and constructor output exercise.
 
-because any permutation of `s1` must contain exactly the same number of characters.
-
-State identified:
-
-```text
-target character frequencies
-current-window character frequencies
-```
-
-Incremental update identified:
+Example of the correctly analyzed trace:
 
 ```text
-one outgoing character is removed
-one incoming character is added
+Start
+Parent static: 15
+Child static: 40
+Parent constructor
+Child constructor
+Parent constructor
+Child constructor
+End
 ```
 
-## Invariant
+What the exercise established:
 
 ```text
-At every comparison point,
-the window-frequency state represents exactly
-s1.length() consecutive characters from s2.
+Static initialization occurs once for the relevant initialized classes.
+Instance construction occurs each time an object is created.
+Superclass construction precedes subclass construction.
 ```
 
-## Initial implementation issues
+**Assessment:** Progress on one multi-part scenario is evidence of improvement, not broad coverage of JVM corner cases.
 
-The first implementation exposed several useful precision gaps:
+### 3.2 JVM edge-case coverage matrix — still open
 
-1. Used:
+#### A. Initialization triggers
 
-```java
-map.size()
-```
+- [ ] `new`, `getstatic`, `putstatic`, `invokestatic`.
+- [ ] Access through a subclass name to a field declared in its parent.
+- [ ] Compile-time constant (`static final`) vs runtime-computed `static final`.
+- [ ] `SomeClass.class` vs `Class.forName(...)` vs `ClassLoader.loadClass(...)`.
+- [ ] Creating an array of a class type without initializing its component class.
+- [ ] Static methods, instance methods and inherited static members.
 
-as window length.
+#### B. Initialization ordering and Java syntax
 
-But:
+- [ ] Multiple static fields and static blocks in declaration order.
+- [ ] Forward references and illegal forward references.
+- [ ] Default-value observations during initialization.
+- [ ] Circular/cross-class initialization and partially initialized state.
+- [ ] Static hiding vs instance overriding; static method resolution.
+- [ ] Interfaces, constant access, and initialization of implementing classes.
+- [ ] Default methods and interface initialization nuances.
+
+#### C. Object-construction ordering
+
+- [ ] Instance field initializers and instance initializer blocks.
+- [ ] `super()` vs `this()` constructor chaining.
+- [ ] Parent and child constructor order, including inherited state.
+- [ ] Dynamic dispatch from constructors and partially initialized subclass fields.
+
+#### D. Failures, concurrency and class loaders
+
+- [ ] Exception during `<clinit>` and `ExceptionInInitializerError`.
+- [ ] Subsequent initialization attempts and `NoClassDefFoundError`.
+- [ ] Two threads racing to initialize the same class.
+- [ ] Distinguish loading, linking and initialization triggers.
+- [ ] Parent-delegation class-loader model.
+- [ ] Same class name loaded by different defining class loaders.
+- [ ] Metaspace vs heap at interview depth.
+
+**Rule:** Do not convert any checkbox above to `[x]` merely because the answer has been explained. Require an independent output prediction, explanation, and/or executable test.
+
+### 3.3 JVM spaced-retrieval protocol
+
+At the beginning of selected future sessions:
 
 ```text
-Map.size() = number of distinct characters
+1. Show one small Java code snippet (without its output).
+2. User predicts exact output or compile-time failure.
+3. User explains which classes initialize and why.
+4. Test the snippet in Java when useful.
+5. Record error category and corrected rule.
 ```
 
-not total characters.
+Rotate cases across sessions rather than treating the entire matrix as one long lecture.
 
-2. Initially failed to compare the final possible window.
+Suggested tracking fields:
 
-3. Later version could call:
-
-```java
-s2.charAt(s2.length())
+```text
+Date | Scenario | Initial prediction | Correct? | Misconception | Retry date
 ```
 
-after checking the final window.
+**Exit bar for this JVM module:**
 
-4. Used:
+- [ ] Predict representative superclass/subclass scenarios correctly.
+- [ ] Explain active use and non-initialization cases.
+- [ ] Identify default vs explicit static initialization.
+- [ ] Explain interface and constant nuances.
+- [ ] Handle instance initializer and constructor interactions.
+- [ ] Recognize initialization failure and concurrency behavior.
+- [ ] Pass a mixed, unprompted JVM-output quiz on separate days.
 
-```java
-Integer != Integer
-```
-
-instead of value equality.
-
-These were identified and corrected.
-
-## Current understanding
-
-- [x] fixed-size window derived
-- [x] state identified
-- [x] outgoing/incoming incremental update understood
-- [x] final-window boundary issue understood
-- [x] exact invariant understood
-- [x] Java boxed-equality issue identified
+No fixed date is assigned for closing this module.
 
 ---
 
-# 5. Minimum Window Substring — LeetCode 76 Exposure
+## 4. Strengths Observed in Day 18
 
-Hard decomposition was attempted beyond the minimum Day-17 requirement.
+1. Can reason about data-structure memory scaling rather than just memorize complexity.
+2. Understands why `visited` is essential once graphs can contain cycles.
+3. Grasps BFS/DFS in terms of the exploration objective, not only queue vs stack.
+4. Recognizes connected components as an abstraction for grid problems.
+5. Improved in JVM superclass/subclass static and constructor ordering after dry runs.
+6. Pushes to retain unmastered topics instead of accepting a premature completion label.
 
-## Variable-window reasoning
+## 5. Priority Growth Areas
 
-Correctly independently reasoned:
+### Algorithm implementation precision
 
-```text
-if window is invalid:
-    expand right
-
-if window is valid:
-    shrink left
-```
-
-Useful mental model:
+Correct conceptual reasoning is frequently ahead of exact Java code. Focus on:
 
 ```text
-right → tries to achieve validity
-left  → tries to achieve minimality
+empty input
+upper/lower bounds
+last possible index/window
+correct state mutation
+recursion termination
+duplicate visits
+explicit edge-case tests
 ```
 
-## Important distinction learned
+### Graph correctness explanations
 
-For:
+Be able to articulate:
 
 ```text
-target = "ABC"
+representation
++ exploration frontier
++ visited state
++ correctness invariant
++ O(V + E) cost accounting
 ```
 
-validity does NOT mean:
+Do not equate a graph cycle with deadlock.
+
+### JVM conceptual boundaries
+
+Keep distinct:
 
 ```text
-window frequencies == target frequencies
+loading ≠ linking ≠ initialization ≠ object construction
 ```
 
-Instead:
+and:
 
 ```text
-window[A] >= required[A]
-window[B] >= required[B]
-window[C] >= required[C]
+declaring/inheriting a static member
+≠ always initializing the class whose name appears in source
 ```
 
-Extra characters and extra copies are allowed.
-
-## Implementation
-
-Implemented a working map-scanning version using:
-
-```text
-target frequency map
-window frequency map
-left/right pointers
-minimum valid window tracking
-```
-
-## Complexity analysis
-
-Initial implementation:
-
-```text
-O(n × d)
-```
-
-where:
-
-```text
-d = number of distinct characters in target
-```
-
-because validity was recomputed by scanning target frequencies.
-
-Worst-case description:
-
-```text
-O(n × m)
-```
-
-where `m = target.length()`.
-
-## Optimization learned
-
-Instead of rescanning target state, maintain:
-
-```text
-required = number of distinct target requirements
-formed   = number currently satisfied
-```
-
-Then validity becomes:
-
-```java
-formed == required
-```
-
-in O(1).
-
-Optimized overall complexity:
-
-```text
-O(n + m)
-```
-
-### Status
-
-- [x] variable-size window derived
-- [x] expand/shrink condition understood
-- [x] coverage vs exact-equality distinction
-- [x] working initial implementation
-- [x] initial complexity derived
-- [x] `formed/required` optimization understood
-- [ ] Optimized `formed/required` implementation not independently rewritten yet
+Practice compile-time behavior as well as runtime output.
 
 ---
 
-# 6. Trie Foundations
+## 6. Pending Deliverables
 
-## Mental model
+### Day 17 carry-over
 
-Understood:
+- [ ] Direct retrieval: `Comparable` vs `Comparator`.
+- [ ] Negative modulo vs `Math.floorMod`.
+- [ ] Independently rewrite optimized `formed/required` Minimum Window Substring.
+- [ ] Explain backpressure without prompts.
+- [ ] Independently rewrite full Kth Largest stream class after correction.
 
-```text
-each word = path through the Trie
-common prefixes = shared paths
-```
+### Day 18 closure
 
-Example:
+- [ ] Test Search in Rotated Sorted Array with a complete edge-case suite.
+- [ ] Produce verified Number of Islands solution and test output.
+- [ ] Independently write BFS and DFS.
+- [ ] Demonstrate whole-graph traversal for disconnected components.
+- [ ] Explain cycle vs deadlock.
+- [ ] Continue JVM class-initialization corner-case practice.
 
-```text
-car
-care
-```
+### Phase 2 next work
 
-share:
-
-```text
-c → a → r
-```
-
-## Node state
-
-Understood need for:
-
-```text
-children
-isWord
-```
-
-`isWord` distinguishes:
-
-```text
-prefix exists
-```
-
-from:
-
-```text
-complete inserted word exists
-```
-
-Example:
-
-```text
-only "care" inserted
-
-search("car")      → false
-startsWith("car")  → true
-```
+- [ ] Rotting Oranges — multi-source BFS.
+- [ ] Directed-cycle detection.
+- [ ] Topological sort / Kahn's algorithm.
+- [ ] Course Schedule.
+- [ ] Union-Find fundamentals.
+- [ ] JVM class-loader delegation, metaspace and further retrieval.
 
 ---
 
-# 7. Trie `insert`
+## 7. Exact Next Action
 
-Implemented Trie insertion iteratively.
+**Do not restart Day 18 from the beginning.** Resume the smallest unfinished, high-value pieces.
 
-Several useful bugs were found during development:
+1. **Number of Islands:** correct guard/boundary conditions, compile, and pass edge-case tests.
+2. **BFS/DFS retrieval:** independently trace disconnected and cyclic graphs; then implement from scratch.
+3. **JVM micro-drill:** run one unprompted class-initialization corner case; record the outcome without closing the topic.
+4. **Day 17 retrieval:** revisit `Comparable`/`Comparator`, `floorMod`, heap invariant and backpressure briefly.
+5. **Begin Day 19:** Rotting Oranges → topological ordering/Course Schedule → Union-Find foundations. Introduce JVM class loaders/metaspace as a separate thread.
 
-### Bug 1
-
-After creating a node, traversal initially did not descend into the newly created node.
-
-### Bug 2
-
-`isWord` was initially set only when a node was created.
-
-This failed for:
-
-```text
-insert("care")
-insert("car")
-```
-
-because the `r` node already existed when `"car"` was inserted.
-
-Final implementation correctly tracks the current node whether existing or newly created and marks:
-
-```java
-node.setWord(true);
-```
-
-after full traversal.
-
-## Insert invariant
-
-```text
-After processing character i,
-the current node represents word[0..i].
-```
+**Working principle:** Continue new material while regularly revisiting JVM; do not let one unfinished JVM module block all graph progress.
 
 ---
 
-# 8. Trie `search`
+## 8. Completion Rules
 
-Implemented correctly.
+Use exactly these meanings:
 
-Logic:
+- **COMPLETED:** Independently explained and, where coding is required, implemented/tested.
+- **FOUNDATIONS COVERED:** Concept explained; independent practice still due.
+- **IN PROGRESS:** Corrective work or significant corner-case coverage remains.
+- **NOT STARTED:** Not yet meaningfully taught/tested.
+- **NEEDS RETRIEVAL:** Previously covered, but not independently retested.
 
-```text
-traverse every character
-
-if any path is missing:
-    false
-
-after full traversal:
-    return finalNode.isWord
-```
-
-Correct distinction:
-
-```text
-path existence alone is insufficient for exact search.
-```
+**Day 18 remains IN PROGRESS.**  
+**JVM class initialization remains IN PROGRESS.**  
+**Day 19 remains NOT STARTED.**
 
 ---
 
-# 9. Trie `startsWith`
-
-Initially assumed that the final prefix node must have children.
-
-Corrected understanding:
-
-```text
-startsWith(prefix)
-```
-
-only asks:
-
-```text
-Does the complete prefix path exist?
-```
-
-Therefore:
-
-```text
-insert("apple")
-
-startsWith("apple") → true
-```
-
-even if the final `e` node has no children.
-
-Correct final behavior:
-
-```text
-search()
-→ path exists + final isWord
-
-startsWith()
-→ path exists
-```
-
-Also correctly reasoned that BFS/DFS would be needed for a different requirement:
-
-```text
-getAllWordsStartingWith(prefix)
-```
-
-but not for boolean `startsWith()`.
-
----
-
-# 10. Trie Representation Trade-off
-
-Reviewed two child representations.
-
-## `HashMap<Character, Node>`
-
-Advantages:
-
-```text
-sparse allocation
-flexible character domain
-```
-
-Costs:
-
-```text
-hashing overhead
-extra objects / memory overhead
-```
-
-## `Node[26]`
-
-Useful for:
-
-```text
-lowercase English alphabet only
-```
-
-Advantages:
-
-```text
-direct indexing
-low lookup overhead
-```
-
-Cost:
-
-```text
-unused slots when branching is sparse
-```
-
-## Complexity
-
-For key length `L`:
-
-```text
-insert     → O(L)
-search     → O(L)
-startsWith → O(L)
-```
-
-assuming constant-average child lookup.
-
-### Status
-
-- [x] Trie mental model
-- [x] children + `isWord`
-- [x] insert implemented
-- [x] search implemented
-- [x] startsWith implemented
-- [x] prefix vs exact lookup understood
-- [x] BFS/DFS role for autocomplete clarified
-- [x] array-vs-map trade-off reviewed
-
----
-
-# 11. JVM — Source to Execution
-
-## Correct execution chain
-
-Retrieved:
-
-```text
-.java source
-↓
-javac
-↓
-.class bytecode
-```
-
-Initially assumed JVM bytecode was directly understood by the processor.
-
-Corrected mental model:
-
-```text
-.java
-↓
-javac
-↓
-.class bytecode
-↓
-class loading
-↓
-JVM execution
-↓
-interpreter / lower-tier execution
-↓
-runtime profiling
-↓
-hot-code detection
-↓
-JIT compilation
-↓
-native machine code
-↓
-CPU
-```
-
-Important distinction retained:
-
-```text
-CPU understands native machine instructions,
-not JVM bytecode.
-```
-
-## Portability
-
-Understood that `.class` bytecode is platform-independent while the JVM implementation is platform-specific.
-
----
-
-# 12. Interpreter vs JIT
-
-Learned why JVM does not eagerly compile all bytecode to optimized native code.
-
-Reasons:
-
-```text
-JIT compilation itself costs CPU/time
-many methods may never execute
-runtime profiling can identify actually hot paths
-```
-
-Mental model:
-
-```text
-execute
-→ profile
-→ identify hot code
-→ compile optimized native code
-```
-
----
-
-# 13. JVM Warmup / JMH
-
-Understood that:
-
-```java
-System.nanoTime()
-```
-
-around one execution is not sufficient evidence of steady-state performance.
-
-First-call latency may include:
-
-```text
-class loading
-static initialization
-lazy initialization
-cache coldness
-JIT activity
-I/O or connection setup
-```
-
-Therefore:
-
-```text
-first call slower
-```
-
-does not automatically prove:
-
-```text
-JIT caused the difference.
-```
-
-JMH connection reviewed:
-
-```text
-warmup iterations
-measurement iterations
-better microbenchmark isolation
-```
-
-### Status
-
-- [x] source → bytecode understood
-- [x] bytecode vs machine-code distinction corrected
-- [x] interpreter/JIT purpose understood
-- [x] hot-code concept understood
-- [x] warmup significance
-- [x] JMH purpose understood
-
----
-
-# 14. Production Drill — Ordering vs Capacity
-
-Scenario:
-
-```text
-incoming rate = 20,000 tasks/sec
-worker capacity = 5,000 tasks/sec
-```
-
-Correctly answered that a better heap / `PriorityQueue` does not solve the system problem.
-
-Backlog growth:
-
-```text
-20,000 - 5,000
-= 15,000 tasks/sec
-```
-
-Key distinction:
-
-```text
-priority → determines ordering
-
-capacity/backpressure
-→ determines whether the system can keep up
-```
-
-Relevant production controls reviewed:
-
-```text
-bounded queues
-backpressure
-load shedding
-capacity scaling
-```
-
-### Retrieval status
-
-- [x] correctly rejected heap as the solution
-- [ ] Full backpressure explanation should be retrieved once without prompting
-
----
-
-# Day 17 Observed Strengths
-
-1. Increasing ability to derive structures rather than immediately pattern-match.
-2. Strong transfer from Kth Largest to Top K Frequent.
-3. Good instinct for challenging edge cases, especially ties.
-4. Variable sliding-window reasoning was derived with limited prompting.
-5. Trie mental model was absorbed quickly after implementation feedback.
-6. Comfortable composing structures such as:
-
-```text
-HashMap + Heap
-```
-
-7. Increasing awareness of invariants and incremental state maintenance.
-
----
-
-# Day 17 Growth Areas
-
-## 1. Implementation precision
-
-Conceptual approach is frequently correct before implementation.
-
-Current recurring bugs involve:
-
-```text
-loop boundaries
-last-window handling
-state meaning
-boxed equality
-tracking current object/node
-```
-
-Required pre-code checklist:
-
-```text
-1. What exactly is my state?
-2. What invariant must remain true?
-3. What changes in one iteration?
-4. What boundary ends the loop?
-5. What input breaks this code?
-```
-
-## 2. Avoid duplicate state
-
-Example from Kth Largest:
-
-```text
-array + heap
-```
-
-was unnecessary.
-
-Prefer the smallest state that fully represents the invariant.
-
-## 3. Separate path existence from semantic completion
-
-Trie lesson:
-
-```text
-path exists
-≠
-word exists
-```
-
-`isWord` carries semantic completion.
-
-## 4. Maintain derived state incrementally
-
-Minimum Window optimization:
-
-```text
-recompute validity every time
-```
-
-can often become:
-
-```text
-update one counter when state changes
-```
-
-This is an important transferable optimization pattern.
-
----
-
-# Day 17 Deferred / Needs Retrieval
-
-- [ ] Comparable vs Comparator direct retrieval
-- [ ] Java `%` negative-value behavior
-- [ ] `Math.floorMod`
-- [ ] optimized Minimum Window implementation
-- [ ] backpressure explanation without prompting
-
-These should be brief retrieval items, not another full Day-17 session.
-
----
-
-# Day 17 Exit Assessment
-
-## Heap Transfer
-
-**Passed.**
-
-Current mental model:
-
-```text
-heap =
-maintain an extreme over a changing candidate set
-```
-
-not merely:
-
-```text
-peek / poll
-```
-
-## Sliding Window
-
-**Passed conceptually; implementation precision still needs repetition.**
-
-Can derive:
-
-```text
-window size
-state
-incremental update
-validity condition
-```
-
-Fixed and variable windows both understood.
-
-## Trie
-
-**Passed.**
-
-Can explain:
-
-```text
-exact membership
-vs
-prefix existence
-```
-
-and implement the three fundamental operations.
-
-## JVM
-
-**Passed at Day-17 depth.**
-
-Current model:
-
-```text
-source
-→ bytecode
-→ JVM execution/profile
-→ hot code
-→ JIT
-→ native machine code
-```
-
----
-
-# Exact Day 18 Starting Action
-
-Before new material, do a **10-minute retrieval only**:
-
-```text
-1. State Kth Largest heap invariant.
-2. Explain Comparable vs Comparator.
-3. Explain -1 % 5 in Java and Math.floorMod.
-4. State fixed-window invariant for Permutation in String.
-5. Explain search() vs startsWith() in Trie.
-6. Explain interpreter → profile → JIT.
-7. Explain why PriorityQueue does not solve backpressure.
-```
-
-Then begin Day 18 with:
-
-```text
-Mixed / unknown-pattern algorithm transfer
-+
-Graph representation
-+
-BFS / DFS foundations
-+
-JVM continuation
-```
-
-First graph question:
-
-> Given a set of services and directed dependencies between them, how would you represent the graph in memory, and what information must each representation preserve?
+## 9. Previous Day Baseline — Day 17
+
+The prior `cirriculum/registry.md` contains detailed Day-17 implementation observations. The essential exit status is retained here:
+
+| Topic | Day-17 result | Remaining |
+|---|---|---|
+| Kth Largest in Stream (LC 703) | Bounded min-heap invariant understood | Full independent stream-class rewrite |
+| Top K Frequent Elements (LC 347) | HashMap + bounded heap composition implemented | Retrieval on comparator details |
+| Permutation in String | Fixed window, outgoing/incoming updates understood | Implementation boundary repetition |
+| Minimum Window Substring (LC 76) | Working map-scanning version; optimization understood | Independently implement `formed/required` |
+| Trie | `insert`, `search`, `startsWith` implemented | Occasional retrieval |
+| JVM source/JIT | Bytecode, interpreter, profiling/JIT and warmup understood | Extend into class initialization |
+| Production drill | Priority ordering vs backpressure distinguished | Unprompted backpressure explanation |
+
+**Source of truth:** `cirriculum/MASTER_CURRICULUM.md`, `cirriculum/day18.md`, and the Day-17 registry previously committed in GitHub.
+
+**Registry maintenance rule:** Update only after observed evidence. Preserve open tasks and original misconceptions so they can be retested.
