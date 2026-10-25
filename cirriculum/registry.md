@@ -1,418 +1,164 @@
-# Backend Engineering Bootcamp Registry
+# Current Position
 
-**Last updated:** 2026-10-18  
-**Primary language:** Java  
-**Target:** Senior / Lead / Staff backend engineering interviews  
-**Phase:** Phase 2 — Trees, Heaps, Graphs, Collections & JVM Execution  
-**Current curriculum:** Day 18 — Graph Foundations, BFS/DFS & JVM Class Initialization  
-**Current status:** IN PROGRESS  
-**Last completed day:** Day 17  
-**Next direction:** Close Day 18 gaps, then start Day 19
-
-> This registry records **demonstrated understanding**, not just topics discussed. A concept remains open when implementation, edge-case reasoning, or independent retrieval is incomplete.
->
-> **Explicit continuity rule (2026-10-18): Do not mark the JVM class-initialization unit complete.** Revisit it in small, spaced challenges until the edge cases are independently explained.
+- **Curriculum:** Day 20 — Dijkstra Transfer, Union-Find Composition, Monotonic Stack & Phase-2 Interview Integration
+- **Status:** In Progress — paused intentionally; **do not mark Day 20 complete**
+- **Current Section:** Session 3 — Accounts Merge (LeetCode 721)
+- **Next Action:** Derive DSU union between account indices when a repeated email is encountered
+- **Day 21:** Not started
+- **Primary language:** Java
 
 ---
 
-## 1. Current Position at a Glance
+# Day 20 Checkpoint — 2026-10-26
 
-| Workstream | Status | Evidence / blocker |
+Source: `cirriculum/day20.md`. These entries reflect demonstrated understanding, not just topics explained by the tutor. The learner asked to stop immediately after deriving transitive connectivity in Accounts Merge.
+
+## Session Status
+
+| Session | Status | Evidence / open work |
 |---|---|---|
-| Day 17 — Heaps, sliding windows, Trie, JVM execution | Completed at Day-17 scope; targeted retrieval outstanding | Day-17 registry has detailed evidence |
-| Day 18 — Search in Rotated Sorted Array (LC 33) | Reviewed; verification pending | Sorted-half/safe-elimination reasoning discussed; independent final test suite not confirmed |
-| Day 18 — Graph representations | Foundations covered | Directed edges, adjacency list/matrix, degrees, sparse-vs-dense trade-offs |
-| Day 18 — BFS / DFS | Foundations covered; practice pending | Queue vs stack/recursion, visited state, shortest unweighted distance, O(V+E) |
-| Day 18 — Number of Islands (LC 200) | IN PROGRESS | Component/DFS idea understood; fix guards/bounds and run tests |
-| Day 18 — JVM loading, linking, initialization | IN PROGRESS | Correct parent/child output trace; nuanced trigger and edge cases not yet mastered |
-| Day 19 | NOT STARTED | Begin after bounded Day-18 close-out; carry JVM revision forward |
-
-**Important:** Completion of one JVM output-tracing exercise does **not** close the broader JVM topic.
-
----
-
-## 2. Day 18 — Evidence and Progress
-
-### 2.1 Precision retrieval (from Day 17)
-
-- [ ] Independently recheck Kth Largest stream invariant.
-- [ ] Directly explain `Comparable` vs `Comparator`.
-- [ ] Explain Java `-1 % 5` and `Math.floorMod(-1, 5)`.
-- [ ] State fixed-window invariant for Permutation in String.
-- [ ] Explain Trie `search()` vs `startsWith()`.
-- [ ] Retrieve the source → bytecode → interpreter/profile → JIT chain.
-- [ ] Explain why `PriorityQueue` fixes ordering, **not** capacity/backpressure.
-
-**Status:** Retrieval checklist is not fully verified in the available session record. Do not silently mark these items complete.
-
-### 2.2 Mixed algorithm transfer — Search in Rotated Sorted Array (LeetCode 33)
+| 1. Day 19 retrieval | Completed with corrections | All seven retrieval questions answered; precision refinements recorded below |
+| 2. Network Delay Time | In progress | Distance state, min-frontier, relaxation, stale entries understood; full Java solution and independent complexity proof pending |
+| 3. Accounts Merge | In progress | Transitive email connectivity derived; DSU union composition, reconstruction, sorting, code pending |
+| 4. Daily Temperatures | Not started | Brute force, monotonic stack, invariants, implementation, amortized proof pending |
+| 5. Java Collections | Day 20 theory covered, mixed retrieval later | HashMap, TreeMap, PriorityQueue, ArrayList vs LinkedList, ConcurrentHashMap |
+| 6. JVM spaced challenge | Predicted, not executed | Inherited static-field case and child-declared variation predicted correctly; runtime verification pending |
+| 7. Phase 2 exit check | Not started | Do not claim Phase 2 exit while coding/transfer exercises are open |
 
-Key model:
-
-```text
-The array is not globally sorted.
-At least one half around the midpoint remains sorted
-(under the distinct-values assumption).
-```
-
-Reasoning protocol:
-
-```text
-1. Identify which half is sorted.
-2. Check whether the target lies inside that half's value range.
-3. Discard only a half proved not to contain the target.
-4. Preserve inclusive/exclusive boundaries correctly.
-```
-
-- [x] Topic and sorted-half/safe-elimination reasoning discussed.
-- [ ] Independently verify final Java implementation.
-- [ ] Test singleton, missing target, two elements, pivot endpoints and ordinary rotations.
-- [ ] Give a complete correctness and O(log n) time / O(1) space explanation without hints.
-
-**Status:** Reviewed; do not claim implementation mastery until independent verification.
-
-### 2.3 Graph representations
-
-Covered:
+## 1. Day 19 Retrieval — Evidence
 
-- [x] Vertex/node and directed edge.
-- [x] Adjacency list as `Map<Node, List<Node>>` / `List<List<Integer>>`.
-- [x] Adjacency matrix as a `V × V` structure.
-- [x] List storage: O(V + E).
-- [x] Matrix storage: O(V²).
-- [x] Matrix edge lookup: O(1).
-- [x] Matrix neighbor scan: O(V).
-- [x] Adjacency list neighbor scan: O(out-degree).
-- [x] In-degree vs out-degree.
-- [x] Why sparse, large service-dependency graphs favor adjacency lists.
-- [x] Recognized a directed cycle, e.g. `A → C → D → A`.
-
-**Precision correction to retain:**
-
-```text
-A directed cycle is not automatically a deadlock.
-Deadlock requires additional resource/wait conditions.
-A dependency cycle may be invalid or dangerous, but is not
-sufficient evidence of a runtime deadlock.
-```
-
-- [ ] Independently explain graph cycle vs deadlock in one production example.
-- [ ] Revisit disconnected vertices and traversal across components.
-
-### 2.4 BFS foundations
-
-- [x] FIFO queue defines breadth-first exploration.
-- [x] `visited` is required when graph nodes may be reachable by multiple paths/cycles.
-- [x] Mark visited **when enqueuing** to prevent duplicate entries.
-- [x] BFS finds minimum edge-count distance in an unweighted graph.
-- [x] With adjacency lists, traversal is O(V + E) time; O(V) auxiliary space.
-- [ ] Independently code BFS from a blank editor.
-- [ ] Test a diamond graph where two paths reach the same vertex.
-- [ ] Verify disconnected-graph traversal by starting from each unvisited vertex.
-
-Queue invariant:
-
-```text
-Every queued vertex has already been discovered/marked,
-but has not yet been fully processed.
-```
-
-### 2.5 DFS foundations
-
-- [x] Depth-first exploration via recursion or an explicit stack.
-- [x] Backtracking after exploring a path.
-- [x] Need to mark visited to handle cycles.
-- [x] With adjacency lists, O(V + E) traversal time and O(V) auxiliary space.
-- [ ] Independently implement recursive DFS and iterative DFS.
-- [ ] Test directed cycle and disconnected graph.
-- [ ] Explain why DFS does not guarantee shortest unweighted distance.
-
-Model:
-
-```text
-DFS = go deep, then backtrack.
-BFS = explore in increasing distance from the source.
-```
-
-### 2.6 Graph LeetCode — Number of Islands (LeetCode 200)
-
-**Abstraction understood:**
-
-```text
-One island = one connected component of land cells
-using four-directional adjacency.
-```
-
-Plan:
-
-```text
-For every grid cell:
-  if it is unvisited land:
-    islands++
-    traverse all connected land cells
-    mark them visited / mutate them to water
-```
-
-- [x] Connected-component abstraction understood.
-- [x] Outer grid scan + DFS approach discussed.
-- [x] O(R × C) time goal understood.
-- [ ] Fix empty/null grid guard as appropriate to the method contract.
-- [ ] Fix row/column bounds (`>=` upper-bound checks, not just `>`).
-- [ ] Verify visited or in-place mutation is applied exactly once.
-- [ ] Compile and run corrected Java code.
-- [ ] Test empty grid, one land cell, one water cell, separate islands, full-land grid and thin rows/columns.
-- [ ] State worst-case auxiliary space, including the DFS recursion stack: O(R × C).
-
-**Status:** **IN PROGRESS.** A correct idea is not the same as a tested implementation.
-
----
-
-## 3. JVM — Class Loading, Initialization & Inheritance
-
-**Status:** **IN PROGRESS — explicitly not completed.**
-
-### 3.1 Understanding demonstrated
-
-- [x] `.java` source is compiled by `javac` to `.class` bytecode.
-- [x] Bytecode is not CPU-native machine code.
-- [x] Loading, linking and initialization are distinct lifecycle concerns.
-- [x] Linking includes verification, preparation and resolution.
-- [x] Static variables get preparation/default-state treatment before user-written initialization.
-- [x] Static field initializers and static blocks execute in textual order during class initialization.
-- [x] A superclass is initialized before a subclass that requires initialization.
-- [x] Class initialization normally occurs once per class per defining class loader.
-- [x] Object constructors execute for each object construction.
-- [x] Correctly reasoned through a combined parent/child static-initialization and constructor output exercise.
+- [x] Multi-source BFS: enqueue all starting points and process fixed-size BFS levels; initial nodes are t=0 and newly discovered nodes are processed at t=1.
+- [x] Kahn: `indegree == 0` means no **remaining** prerequisites; initially needed terminology correction.
+- [x] Kahn directed-cycle detection: `processedCount < V` means some nodes cannot reach indegree zero, proving a cycle.
+- [x] BFS/DFS vs Union-Find: selected DSU for repeated incremental connectivity queries across many users.
+- [x] Path compression and union-by-size: understood root flattening and attaching small components under large ones; clarify compression acts on visited path.
+- [x] JVM class identity: binary name + **defining** class loader, even if bytecode identical.
+- [x] Dependency cycle vs deadlock: distinguished structural dependency cycle from classical runtime lock deadlock; logical deadlock nuance discussed.
 
-Example of the correctly analyzed trace:
-
-```text
-Start
-Parent static: 15
-Child static: 40
-Parent constructor
-Child constructor
-Parent constructor
-Child constructor
-End
-```
+## 2. Network Delay Time (LeetCode 743)
 
-What the exercise established:
+**Demonstrated:**
 
-```text
-Static initialization occurs once for the relevant initialized classes.
-Instance construction occurs each time an object is created.
-Superclass construction precedes subclass construction.
-```
-
-**Assessment:** Progress on one multi-part scenario is evidence of improvement, not broad coverage of JVM corner cases.
-
-### 3.2 JVM edge-case coverage matrix — still open
-
-#### A. Initialization triggers
+- [x] Differentiated cumulative edge weight from number of hops; ordinary BFS cannot directly minimize unequal weights.
+- [x] Maintained best-known `dist[node]`; understood that discovered distances can improve.
+- [x] Reasoned toward selecting smallest total-distance frontier candidate using a min-heap, not only the next neighbor.
+- [x] Worked through relaxation and independently wrote `dist[4] = Math.min(dist[4], weight + dist[2])` for 10 vs 3+2 → 5.
+- [x] Explained stale heap entries: skip outdated `(node=2, distance=10)` if `dist[2]=4`.
+- [x] Discussed non-negative-weight justification for finalizing the minimum tentative distance.
 
-- [ ] `new`, `getstatic`, `putstatic`, `invokestatic`.
-- [ ] Access through a subclass name to a field declared in its parent.
-- [ ] Compile-time constant (`static final`) vs runtime-computed `static final`.
-- [ ] `SomeClass.class` vs `Class.forName(...)` vs `ClassLoader.loadClass(...)`.
-- [ ] Creating an array of a class type without initializing its component class.
-- [ ] Static methods, instance methods and inherited static members.
-
-#### B. Initialization ordering and Java syntax
-
-- [ ] Multiple static fields and static blocks in declaration order.
-- [ ] Forward references and illegal forward references.
-- [ ] Default-value observations during initialization.
-- [ ] Circular/cross-class initialization and partially initialized state.
-- [ ] Static hiding vs instance overriding; static method resolution.
-- [ ] Interfaces, constant access, and initialization of implementing classes.
-- [ ] Default methods and interface initialization nuances.
+**Open:**
 
-#### C. Object-construction ordering
+- [ ] Build adjacency list, initialize distances, and create min-heap in Java.
+- [ ] Implement poll/relax/enqueue loop and stale-entry handling.
+- [ ] Implement return value: maximum shortest distance, or -1 if unreachable.
+- [ ] Validate edge cases and analyze time/space complexity independently.
+- [ ] Demonstrate a full solution with fewer hints.
 
-- [ ] Instance field initializers and instance initializer blocks.
-- [ ] `super()` vs `this()` constructor chaining.
-- [ ] Parent and child constructor order, including inherited state.
-- [ ] Dynamic dispatch from constructors and partially initialized subclass fields.
+**Implementation bugs:** None observed — no complete implementation was submitted. Do not treat unimplemented code as failed or complete.
 
-#### D. Failures, concurrency and class loaders
+**Observed bridge gap:** Learner follows concrete questions and can write atomic Java operations but is not yet confident composing an entire unfamiliar problem. Use small blocks before requiring complete implementation.
 
-- [ ] Exception during `<clinit>` and `ExceptionInInitializerError`.
-- [ ] Subsequent initialization attempts and `NoClassDefFoundError`.
-- [ ] Two threads racing to initialize the same class.
-- [ ] Distinguish loading, linking and initialization triggers.
-- [ ] Parent-delegation class-loader model.
-- [ ] Same class name loaded by different defining class loaders.
-- [ ] Metaspace vs heap at interview depth.
+## 3. Accounts Merge (LeetCode 721)
 
-**Rule:** Do not convert any checkbox above to `[x]` merely because the answer has been explained. Require an independent output prediction, explanation, and/or executable test.
+- [x] Derived that Account 1 sharing with Account 3 and Account 3 sharing with Account 2 makes all three a single connected component.
+- [x] Identified shared-email transitivity as the relationship to preserve.
+- [ ] Explicitly pick **account indices** as Union-Find elements and explain why.
+- [ ] Use `email -> firstAccountIndex` map; if seen again, union current account index with first-seen owner index.
+- [ ] Rebuild `root -> unique emails`, sort each list, prepend name.
+- [ ] Explain pairwise-comparison cost, sorting cost, and complexity.
+- [ ] Implement and test Java solution.
 
-### 3.3 JVM spaced-retrieval protocol
+**Exact stop:** The teacher asked what DSU operation to perform when Account 3 sees `b@gmail.com` first seen in Account 1. Learner stopped before answering.
 
-At the beginning of selected future sessions:
+## 4. Daily Temperatures (LeetCode 739)
 
-```text
-1. Show one small Java code snippet (without its output).
-2. User predicts exact output or compile-time failure.
-3. User explains which classes initialize and why.
-4. Test the snippet in Java when useful.
-5. Record error category and corrected rule.
-```
+- [ ] Start with O(n²) brute force.
+- [ ] Identify unresolved indices and monotonic stack invariant.
+- [ ] Implement solution and demonstrate why popping is safe.
+- [ ] Explain amortized O(n): each index pushed once, popped at most once.
 
-Rotate cases across sessions rather than treating the entire matrix as one long lecture.
+No evidence collected yet; do not mark covered.
 
-Suggested tracking fields:
+## 5. Java Collections — Scenario Evidence
 
-```text
-Date | Scenario | Initial prediction | Correct? | Misconception | Retry date
-```
+**HashMap and HashSet**
 
-**Exit bar for this JVM module:**
+- [x] Hash/bucket collision vs `equals()` key equivalence, contract between `hashCode()` and `equals()`.
+- [x] Load factor and resize: at capacity 32, threshold 24, 25th insertion triggers resize.
+- [x] Collision-chain resize vs treeification: minimum capacity 64 and chain threshold explained.
+- [x] Resizing 16→32: hashes 5 and 21 split buckets; identical hashes stay together (needed correction).
+- [x] Mutable hash-relevant key: map retains old entry but cannot necessarily retrieve it, and reinsertion may produce two entries with the same object reference.
+- [x] HashSet internally leverages a HashMap; duplicate equal elements are not added. Needed correction: existing `e1` stays rather than replacement by `e2`.
+- [ ] Brief future drill for collision tree caveats and mutable-key retrieval, without prolonged repetition.
 
-- [ ] Predict representative superclass/subclass scenarios correctly.
-- [ ] Explain active use and non-initialization cases.
-- [ ] Identify default vs explicit static initialization.
-- [ ] Explain interface and constant nuances.
-- [ ] Handle instance initializer and constructor interactions.
-- [ ] Recognize initialization failure and concurrency behavior.
-- [ ] Pass a mixed, unprompted JVM-output quiz on separate days.
+**TreeMap**
 
-No fixed date is assigned for closing this module.
+- [x] Red-Black Tree with O(log n) worst-case search/insert/removal.
+- [x] BST navigation, `floorKey`, `ceilingKey`, `lowerKey`, `higherKey` after initial confusion.
+- [x] Comparator negative / zero / positive outcomes; compare==0 means equivalent key to TreeMap.
+- [x] Two-level string Comparator: primary length, secondary lexical order, including reverse ordering.
+- [ ] Spaced retrieval: initially thought iteration preserves insertion order and same-length unequal strings can coexist under a length-only Comparator; both corrected in discussion.
 
----
+**PriorityQueue**
 
-## 4. Strengths Observed in Day 18
+- [x] Heap array layout; parent/child index formulas; min-heap `poll` sequence.
+- [x] Sift-up on insertion and last-element move + sift-down on removal.
+- [ ] Bottom-up heapify O(n) reasoning not fully internalized; learner explicitly requested to defer it. Do not mark it complete.
 
-1. Can reason about data-structure memory scaling rather than just memorize complexity.
-2. Understands why `visited` is essential once graphs can contain cycles.
-3. Grasps BFS/DFS in terms of the exploration objective, not only queue vs stack.
-4. Recognizes connected components as an abstraction for grid problems.
-5. Improved in JVM superclass/subclass static and constructor ordering after dry runs.
-6. Pushes to retain unmastered topics instead of accepting a premature completion label.
+**ArrayList vs LinkedList**
 
-## 5. Priority Growth Areas
+- [x] Chose ArrayList for frequent indexed access and iteration; explained locality and address calculation.
+- [x] Clarified adjacent `Object[]` references vs potentially scattered objects.
 
-### Algorithm implementation precision
+**ConcurrentHashMap**
 
-Correct conceptual reasoning is frequently ahead of exact Java code. Focus on:
+- [x] Explained shared-state hazards for concurrent HashMap updates, even with different keys.
+- [x] Recognized get-then-put increment is non-atomic even on ConcurrentHashMap.
+- [x] Chose `merge("requests", 1, Integer::sum)` for an atomic per-key update.
+- [ ] ConcurrentHashMap internals deliberately deferred to Phase 3.
 
-```text
-empty input
-upper/lower bounds
-last possible index/window
-correct state mutation
-recursion termination
-duplicate visits
-explicit edge-case tests
-```
+Day 20 Collections theory was covered; do not equate this with complete mastery of all collection internals.
 
-### Graph correctness explanations
+## 6. JVM Inherited-Static-Field Challenge
 
-Be able to articulate:
+- [x] Correctly predicted `Child.value` inherited from Parent: output `Parent initialized` then `10`; Child not initialized.
+- [x] Correctly predicted Child-owned static field variant: `Parent initialized`, `Child initialized`, `20`.
+- [x] Articulated superclass-before-subclass initialization.
+- [ ] Run both examples to record prediction vs actual output.
+- [ ] Keep broader JVM initialization corner-case module open for spaced challenges.
 
-```text
-representation
-+ exploration frontier
-+ visited state
-+ correctness invariant
-+ O(V + E) cost accounting
-```
+## 7. Phase-2 Exit Blockers
 
-Do not equate a graph cycle with deadlock.
+- [ ] Network Delay complete implementation, tests, complexity.
+- [ ] Accounts Merge DSU composition, reconstruction, sorting, complexity, code.
+- [ ] Daily Temperatures monotonic stack derivation, code, proof.
+- [ ] JVM runtime verification.
+- [ ] Phase-2 exit retrieval/mixed transfer check.
 
-### JVM conceptual boundaries
+**Phase-2 exit decision:** Not ready. Do not advance as if Day 20 were complete.
 
-Keep distinct:
+## Coaching Contract — Going Forward
 
-```text
-loading ≠ linking ≠ initialization ≠ object construction
-```
+- Cover the **entire** curriculum, but teach faster and stay within approximate module timeboxes.
+- Core explanation + key Java trade-off + 1–2 high-signal checks per concept; no extended loops of near-identical questions.
+- Track gaps for spaced retrieval rather than extending a 25-minute module into hours.
+- Distinguish **explained**, **reasoned**, **implemented**, and **tested**.
+- Scaffold algorithm coding from small operations → partial loop → full problem, then reduce hints progressively.
+- Do not abruptly mark sessions complete or drop planned scope to save time.
 
-and:
+## Next Action — Exact Resume Point
 
-```text
-declaring/inheriting a static member
-≠ always initializing the class whose name appears in source
-```
+**Resume Day 20 Session 3: Accounts Merge**, not Day 21.
 
-Practice compile-time behavior as well as runtime output.
+Ask first:
 
----
+> Account 3 contains `b@gmail.com`, and `emailToAccount` records that Account 1 contained it earlier. What Union-Find operation should we perform on the two account indices, and why?
 
-## 6. Pending Deliverables
+Then proceed in order:
 
-### Day 17 carry-over
+1. DSU over account indices; email map; union on previously seen email; reconstruct and sort grouped emails.
+2. Daily Temperatures brute force → unresolved indices → monotonic stack → code → O(n) proof.
+3. Return to Network Delay Time for incremental Java implementation and complexity.
+4. JVM runtime verification and Phase-2 exit check.
 
-- [ ] Direct retrieval: `Comparable` vs `Comparator`.
-- [ ] Negative modulo vs `Math.floorMod`.
-- [ ] Independently rewrite optimized `formed/required` Minimum Window Substring.
-- [ ] Explain backpressure without prompts.
-- [ ] Independently rewrite full Kth Largest stream class after correction.
-
-### Day 18 closure
-
-- [ ] Test Search in Rotated Sorted Array with a complete edge-case suite.
-- [ ] Produce verified Number of Islands solution and test output.
-- [ ] Independently write BFS and DFS.
-- [ ] Demonstrate whole-graph traversal for disconnected components.
-- [ ] Explain cycle vs deadlock.
-- [ ] Continue JVM class-initialization corner-case practice.
-
-### Phase 2 next work
-
-- [ ] Rotting Oranges — multi-source BFS.
-- [ ] Directed-cycle detection.
-- [ ] Topological sort / Kahn's algorithm.
-- [ ] Course Schedule.
-- [ ] Union-Find fundamentals.
-- [ ] JVM class-loader delegation, metaspace and further retrieval.
-
----
-
-## 7. Exact Next Action
-
-**Do not restart Day 18 from the beginning.** Resume the smallest unfinished, high-value pieces.
-
-1. **Number of Islands:** correct guard/boundary conditions, compile, and pass edge-case tests.
-2. **BFS/DFS retrieval:** independently trace disconnected and cyclic graphs; then implement from scratch.
-3. **JVM micro-drill:** run one unprompted class-initialization corner case; record the outcome without closing the topic.
-4. **Day 17 retrieval:** revisit `Comparable`/`Comparator`, `floorMod`, heap invariant and backpressure briefly.
-5. **Begin Day 19:** Rotting Oranges → topological ordering/Course Schedule → Union-Find foundations. Introduce JVM class loaders/metaspace as a separate thread.
-
-**Working principle:** Continue new material while regularly revisiting JVM; do not let one unfinished JVM module block all graph progress.
-
----
-
-## 8. Completion Rules
-
-Use exactly these meanings:
-
-- **COMPLETED:** Independently explained and, where coding is required, implemented/tested.
-- **FOUNDATIONS COVERED:** Concept explained; independent practice still due.
-- **IN PROGRESS:** Corrective work or significant corner-case coverage remains.
-- **NOT STARTED:** Not yet meaningfully taught/tested.
-- **NEEDS RETRIEVAL:** Previously covered, but not independently retested.
-
-**Day 18 remains IN PROGRESS.**  
-**JVM class initialization remains IN PROGRESS.**  
-**Day 19 remains NOT STARTED.**
-
----
-
-## 9. Previous Day Baseline — Day 17
-
-The prior `cirriculum/registry.md` contains detailed Day-17 implementation observations. The essential exit status is retained here:
-
-| Topic | Day-17 result | Remaining |
-|---|---|---|
-| Kth Largest in Stream (LC 703) | Bounded min-heap invariant understood | Full independent stream-class rewrite |
-| Top K Frequent Elements (LC 347) | HashMap + bounded heap composition implemented | Retrieval on comparator details |
-| Permutation in String | Fixed window, outgoing/incoming updates understood | Implementation boundary repetition |
-| Minimum Window Substring (LC 76) | Working map-scanning version; optimization understood | Independently implement `formed/required` |
-| Trie | `insert`, `search`, `startsWith` implemented | Occasional retrieval |
-| JVM source/JIT | Bytecode, interpreter, profiling/JIT and warmup understood | Extend into class initialization |
-| Production drill | Priority ordering vs backpressure distinguished | Unprompted backpressure explanation |
-
-**Source of truth:** `cirriculum/MASTER_CURRICULUM.md`, `cirriculum/day18.md`, and the Day-17 registry previously committed in GitHub.
-
-**Registry maintenance rule:** Update only after observed evidence. Preserve open tasks and original misconceptions so they can be retested.
+**Day 21 recommended direction only after Day 20 exit:** mixed LeetCode interview set, JVM/Collections integration, Phase-3 concurrency bridge.
